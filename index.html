@@ -56,7 +56,7 @@
             <span class="menu-qtd" id="menu-qtd-albuns">0</span>
           </button>
           <button class="menu-opcao" data-acao="ir-favoritos" type="button">
-            <span class="menu-icone">❤️</span>
+            <span class="menu-icone">⭐</span>
             <span class="menu-texto"><strong>Favoritos</strong><small>Músicas que você curtiu</small></span>
             <span class="menu-qtd" id="menu-qtd-favoritos">0</span>
           </button>
@@ -142,5 +142,48 @@
   <!-- Aqui o Python é carregado -->
   <script type="py" src="./main.py" config="./pyscript.toml"></script>
   <script>
+  // Variável para armazenar a pasta escolhida pelo usuário
+  let pastaHandleGlobal = null;
+
+  async function selecionarPastaDownloads() {
+    try {
+      pastaHandleGlobal = await window.showDirectoryPicker();
+      alert("Pasta de downloads selecionada com sucesso!");
+      return true;
+    } catch (err) {
+      console.log("Seleção de pasta cancelada.");
+      return false;
+    }
+  }
+
+  async function baixarArquivoNoAparelho(url, nomeArquivo) {
+    const nomeFormatado = nomeArquivo.endsWith(".m4a") ? nomeArquivo : nomeArquivo + ".m4a";
+    
+    // Se o usuário escolheu uma pasta personalizada, tenta salvar nela
+    if (pastaHandleGlobal) {
+      try {
+        const fileHandle = await pastaHandleGlobal.getFileHandle(nomeFormatado, { create: true });
+        const writable = await fileHandle.createWritable();
+        const response = await fetch(url);
+        const blob = await response.blob();
+        await writable.write(blob);
+        await writable.close();
+        alert("Música salva na pasta escolhida com sucesso!");
+        return;
+      } catch (err) {
+        console.log("Erro ao salvar na pasta personalizada, usando download padrão.");
+      }
+    }
+
+    // Download padrão do navegador (vai direto para a pasta Downloads do aparelho)
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nomeFormatado;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+</script>
 </body>
 </html>
