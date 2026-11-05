@@ -1,14 +1,7 @@
 """
 SoundTrack Finder — lógica da aplicação
 =======================================
-Python rodando dentro do navegador (PyScript). Este arquivo:
-
-  1. busca músicas na API gratuita do iTunes;
-  2. mostra os resultados em cards com player de áudio;
-  3. deixa o usuário SALVAR músicas em "Favoritos" (sem limite de reprodução);
-  4. deixa o usuário BAIXAR músicas reais na aba de "Downloads";
-  5. deixa o usuário criar "Álbuns" com as músicas dos favoritos, reordená-las (mover para cima/baixo) e tocar em ordem ou aleatório;
-  6. guarda tudo no navegador (localStorage).
+Python rodando dentro do navegador (PyScript).
 """
 
 import asyncio
@@ -82,9 +75,9 @@ def guardar(chave, valor):
 # =============================================================================
 # 3. ESTADO DA APLICAÇÃO
 # =============================================================================
-favoritos = carregar("favoritos", {})  # {id: música}
-downloads = carregar("downloads", {})  # {id: música}
-albuns = carregar("albuns", {})          # {nome: [ids]}
+favoritos = carregar("favoritos", {})
+downloads = carregar("downloads", {})
+albuns = carregar("albuns", {})
 resultados_atuais = {}
 
 tela = "busca"
@@ -253,6 +246,7 @@ def renderizar_downloads():
     cabecalho = f"""
     <div class="tela-topo">
       <div><h1>Downloads</h1><p>{plural(n, 'música baixada', 'músicas baixadas')}</p></div>
+      <button class="primario" data-acao="escolher-pasta">📁 Alterar Pasta</button>
     </div>"""
     if downloads:
         corpo = '<ul class="lista">' + "".join(
@@ -407,10 +401,20 @@ def favoritar_ou_remover(id_):
 
 def baixar_musica(id_):
     if id_ in favoritos:
-        downloads[id_] = favoritos[id_]
+        musica = favoritos[id_]
+        downloads[id_] = musica
         guardar("downloads", downloads)
-        avisar("Música baixada com sucesso!")
+        
+        # Dispara o download real no aparelho via JavaScript
+        nome_arquivo = f"{musica['artista']} - {musica['nome']}"
+        window.baixarArquivoNoAparelho(musica["audio"], nome_arquivo)
+        
+        avisar("Baixando música para o aparelho...")
         mostrar_tela()
+
+
+def escolher_pasta_downloads():
+    window.selecionarPastaDownloads()
 
 
 def remover_download(id_):
@@ -558,6 +562,8 @@ def ao_clicar(evento):
         ir_para("downloads")
     elif acao == "ir-busca":
         ir_para("busca")
+    elif acao == "escolher-pasta":
+        escolher_pasta_downloads()
     elif acao == "abrir-album":
         ir_para("album", alvo.getAttribute("data-nome"))
     elif acao == "excluir-album":
@@ -628,4 +634,3 @@ if tema_salvo:
     document.documentElement.setAttribute("data-theme", tema_salvo)
 
 mostrar_tela()
-  
