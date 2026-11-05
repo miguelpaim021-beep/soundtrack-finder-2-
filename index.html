@@ -16,10 +16,6 @@
          #tela-album      conteúdo de UM álbum aberto
     3. <footer class="player-bar"> → player de áudio fixo na parte de baixo
     4. #toast                    → mensagem rápida de aviso ("Álbum criado")
-    5. #modal-add                → painel "＋ Adicionar músicas" (janela aberta de dentro
-                                   de um álbum; tem busca própria). Fica aqui, fora das
-                                   telas, para a busca não ser apagada quando a tela
-                                   do álbum é redesenhada.
 
   Os atributos data-acao="..." marcam botões clicáveis. O main.py escuta os
   cliques na página inteira e decide o que fazer pelo valor de data-acao.
@@ -133,33 +129,8 @@
           <span id="np-artista">Escolha uma música para ouvir</span>
         </div>
       </div>
-      <!-- ⏮ ⏭: só aparecem quando um álbum está tocando (fila ativa) -->
-      <div class="controles" id="np-controles" hidden>
-        <button class="icone pequeno" data-acao="anterior" type="button" title="Faixa anterior">⏮</button>
-        <button class="icone pequeno" data-acao="proxima" type="button" title="Próxima faixa">⏭</button>
-      </div>
       <audio id="player" controls preload="none"></audio>
     </footer>
-
-    <!-- ============ PAINEL ＋ ADICIONAR MÚSICAS ============
-         Abre pelo botão ＋ da tela de um álbum (data-acao="abrir-add").
-         .modal-fundo escurece a tela e fecha o painel ao ser clicado.
-         Conteúdo escrito pelo main.py: #add-titulo, #add-status e #add-lista. -->
-    <div id="modal-add" class="modal" hidden>
-      <div class="modal-fundo" data-acao="fechar-add"></div>
-      <div class="modal-painel" role="dialog" aria-modal="true" aria-labelledby="add-titulo">
-        <div class="modal-topo">
-          <h2 id="add-titulo">Adicionar músicas</h2>
-          <button class="icone pequeno" data-acao="fechar-add" type="button" aria-label="Fechar">✕</button>
-        </div>
-        <form id="add-form" class="album-form">
-          <input id="add-input" type="text" placeholder="Busque um artista ou música…" autocomplete="off">
-          <button type="submit">Buscar</button>
-        </form>
-        <p id="add-status">Busque um artista ou música para adicionar.</p>
-        <ul id="add-lista" class="lista"></ul>
-      </div>
-    </div>
 
     <!-- Aviso rápido (aparece por 2 segundos) -->
     <div id="toast" class="toast" role="status"></div>
