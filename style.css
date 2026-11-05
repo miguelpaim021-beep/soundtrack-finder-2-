@@ -1,74 +1,392 @@
+/* ==========================================================================
+   SoundTrack Finder — VISUAL (CSS)
+   --------------------------------------------------------------------------
+   Índice:
+     1. Cores e temas (escuro / claro)
+     2. Base
+     3. Topo (menu ☰, marca, busca)
+     4. Pop-up do menu
+     5. Cabeçalhos de tela e estados vazios
+     6. Tela de busca (cards)
+     7. Linhas de música (Downloads e Álbum)
+     8. Tela de álbuns (grade de álbuns)
+     9. Botões em geral
+    10. Player fixo e aviso rápido
+    11. Celular (responsivo)
+   ========================================================================== */
+
+/* ---------- 1. CORES E TEMAS ----------
+   Todas as cores ficam em variáveis (--nome). Para mudar o visual do site,
+   basta editar os valores aqui. O tema vem do atributo data-theme no <html>. */
 :root[data-theme="dark"] {
-  --bg: #0f1115; --card: #1b1f27; --text: #f2f4f8; --muted: #9aa3b2; --accent: #1db954;
+  --bg: #0c0e14;
+  --surface: #151822;
+  --surface-2: #1d212e;
+  --border: rgba(255, 255, 255, 0.07);
+  --text: #eceef5;
+  --muted: #8a92a6;
+  --accent: #8b6cff;          /* cor de destaque (botões, itens ativos) */
+  --accent-soft: rgba(139, 108, 255, 0.14);
+  --danger: #ff5d73;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 :root[data-theme="light"] {
-  --bg: #f5f6fa; --card: #ffffff; --text: #1a1d24; --muted: #5d6675; --accent: #0a8f3c;
+  --bg: #f4f5fa;
+  --surface: #ffffff;
+  --surface-2: #eceef6;
+  --border: rgba(20, 24, 40, 0.09);
+  --text: #171a26;
+  --muted: #667089;
+  --accent: #6a47f5;
+  --accent-soft: rgba(106, 71, 245, 0.10);
+  --danger: #e0364f;
+  --shadow: 0 12px 32px rgba(40, 50, 90, 0.14);
 }
 
+/* ---------- 2. BASE ---------- */
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* faz o atributo hidden sempre esconder */
 
+html, body { height: 100%; }
 body {
   margin: 0;
-  padding: 1.5rem;
-  font-family: system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
-  max-width: 1100px;
-  margin-inline: auto;
+  overflow: hidden;
+}
+button, input, select { font-family: inherit; font-size: 0.95rem; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-header {
+/* Estrutura da página: topo / conteúdo rolável / player */
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+.scroll { flex: 1; overflow-y: auto; padding: 1.75rem 2rem 2.5rem; }
+.scroll > section { max-width: 1100px; margin-inline: auto; }
+
+/* ---------- 3. TOPO ---------- */
+.topbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
-h1 { margin: 0; font-size: 1.6rem; }
-
-button {
-  cursor: pointer;
-  border: none;
-  border-radius: 8px;
-  padding: 0.7rem 1.1rem;
-  font-size: 1rem;
+.marca { display: flex; align-items: center; gap: 0.6rem; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
+.marca-logo {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 10px;
   background: var(--accent);
   color: #fff;
 }
-#theme-btn { background: var(--card); color: var(--text); }
 
-#search-form { display: flex; gap: 0.5rem; margin: 1.5rem 0 0.5rem; }
+#search-form { flex: 1; display: flex; gap: 0.5rem; max-width: 640px; margin-left: auto; }
 #search-input {
-  flex: 1;
-  padding: 0.7rem 1rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--muted);
-  background: var(--card);
-  color: var(--text);
+  flex: 1; min-width: 0;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+#search-input::placeholder { color: var(--muted); }
+#search-btn {
+  padding: 0 1.3rem;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  transition: filter 0.15s;
+}
+#search-btn:hover { filter: brightness(1.12); }
+
+/* ---------- 4. POP-UP DO MENU ---------- */
+.menu-wrap { position: relative; }
+.menu-popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 270px;
+  padding: 0.5rem;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 30;
+  animation: abrir 0.16s ease-out;
+}
+@keyframes abrir {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+.menu-opcao {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  text-align: left;
+  transition: background 0.15s;
+}
+.menu-opcao:hover { background: var(--surface-2); }
+.menu-icone {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 1.15rem;
+}
+.menu-texto { flex: 1; display: flex; flex-direction: column; }
+.menu-texto strong { font-size: 0.95rem; }
+.menu-texto small { color: var(--muted); font-size: 0.78rem; }
+.menu-qtd {
+  min-width: 26px;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
 }
 
-#status { color: var(--muted); min-height: 1.5rem; }
+/* ---------- 5. CABEÇALHOS DE TELA E ESTADOS VAZIOS ---------- */
+.tela-topo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+.tela-topo h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.tela-topo p { margin: 0.25rem 0 0; color: var(--muted); }
 
+.vazio {
+  grid-column: 1 / -1;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.vazio-icone { font-size: 2.4rem; margin-bottom: 0.4rem; }
+.vazio h2 { margin: 0.2rem 0; font-size: 1.15rem; color: var(--text); }
+.vazio p { margin: 0 0 1.1rem; }
+
+/* ---------- 6. TELA DE BUSCA ---------- */
+#status { margin: 0 0 1.1rem; min-height: 1.4rem; color: var(--muted); font-weight: 500; }
 #grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1.1rem;
 }
-
 .card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
+  padding: 0.8rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
-.card h3 { margin: 0.3rem 0 0; font-size: 1rem; }
-.card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-.card audio { width: 100%; margin-top: 0.4rem; }
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.capa { aspect-ratio: 1; border-radius: 11px; overflow: hidden; background: var(--surface-2); }
+.capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card h3 { margin: 0.5rem 0 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card p { margin: 0; font-size: 0.82rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card audio { width: 100%; height: 34px; margin-top: 0.35rem; }
 
-@media (max-width: 480px) {
-  body { padding: 1rem; }
-  #grid { grid-template-columns: 1fr 1fr; }
+.btn-salvar {
+  margin-top: 0.35rem;
+  padding: 0.55rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-salvar:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-salvar.ativo { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+/* ---------- 7. LINHAS DE MÚSICA (Downloads e Álbum) ---------- */
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.linha {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+.linha:hover { border-color: var(--accent); }
+.linha img { width: 48px; height: 48px; border-radius: 9px; object-fit: cover; background: var(--surface-2); flex-shrink: 0; }
+.info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.info strong, .info span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info strong { font-size: 0.95rem; }
+.info span { font-size: 0.82rem; color: var(--muted); }
+.play {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+}
+.play:hover { transform: scale(1.1); }
+.linha select {
+  max-width: 130px;
+  padding: 0.45rem 0.5rem;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.82rem;
+}
+
+/* ---------- 8. TELA DE ÁLBUNS ---------- */
+.album-form { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; max-width: 520px; }
+.album-form input {
+  flex: 1; min-width: 0;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.album-form button {
+  padding: 0 1.2rem;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.albuns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1.2rem; }
+.album-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.8rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: left;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.album-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.album-card strong { margin-top: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.album-card > span { font-size: 0.82rem; color: var(--muted); }
+.album-capa {
+  aspect-ratio: 1;
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--accent-soft);
+  display: grid;
+  place-items: center;
+}
+.album-capa > img { width: 100%; height: 100%; object-fit: cover; }
+.arte-vazia { font-size: 2.6rem; color: var(--accent); }
+.mosaico { width: 100%; height: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+.mosaico img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.voltar { margin-bottom: 1rem; color: var(--muted); font-weight: 600; transition: color 0.15s; }
+.voltar:hover { color: var(--accent); }
+
+/* ---------- 9. BOTÕES EM GERAL ---------- */
+.icone {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.icone:hover { background: var(--accent-soft); }
+.icone.pequeno { width: 30px; height: 30px; font-size: 0.75rem; }
+.primario { padding: 0.7rem 1.3rem; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 600; }
+.primario:hover { filter: brightness(1.12); }
+.perigo {
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.perigo:hover { background: var(--danger); color: #fff; }
+.link { color: var(--accent); font-weight: 600; font-size: 0.85rem; white-space: nowrap; }
+
+/* ---------- 10. PLAYER FIXO E AVISO ---------- */
+.player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.5rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.tocando { display: flex; align-items: center; gap: 0.8rem; min-width: 0; flex: 1; }
+.tocando-capa {
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1.3rem;
+  overflow: hidden;
+}
+.tocando-capa img { width: 100%; height: 100%; object-fit: cover; }
+.tocando-info { display: flex; flex-direction: column; min-width: 0; }
+.tocando-info strong, .tocando-info span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tocando-info span { font-size: 0.82rem; color: var(--muted); }
+#player { width: min(460px, 50%); height: 40px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translate(-50%, 12px);
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.88rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 40;
+}
+.toast.mostra { opacity: 1; transform: translate(-50%, 0); }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+
+/* ---------- 11. CELULAR ---------- */
+@media (max-width: 720px) {
+  .scroll { padding: 1.1rem 1rem 2rem; }
+  .topbar { padding: 0.65rem 0.8rem; gap: 0.5rem; }
+  .marca-nome { display: none; }               /* só o ícone ♪ */
+  #search-btn { padding: 0 0.9rem; }
+  #grid { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+  .albuns-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+  .tela-topo h1 { font-size: 1.5rem; }
+  .linha { flex-wrap: wrap; }
+  .linha select { max-width: 110px; }
+  .player-bar { flex-direction: column; align-items: stretch; gap: 0.4rem; padding: 0.6rem 1rem; }
+  #player { width: 100%; }
+  .toast { bottom: 130px; }
 }
