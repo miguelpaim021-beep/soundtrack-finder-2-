@@ -6,9 +6,13 @@ Python rodando dentro do navegador (PyScript). Este arquivo:
   1. busca músicas na API gratuita do iTunes;
   2. mostra os resultados em cards com player de áudio;
   3. deixa o usuário guardar músicas em "Favoritos";
-  4. deixa o usuário criar "Álbuns" com as músicas favoritas;
-  5. mostra em "Downloads" os arquivos de áudio de uma PASTA do dispositivo
-     (acesso feito pelo pasta.js);
+  4. deixa o usuário montar "Álbuns" (playlists editáveis):
+       • botão ＋ dentro do álbum abre uma busca e adiciona músicas direto,
+         sem precisar favoritar nem baixar;
+       • as músicas podem ser movidas para cima/para baixo (ordem editável);
+       • o álbum toca em SEQUÊNCIA (na ordem da lista) ou ALEATÓRIO;
+  5. cria a pasta "SoundTrack Downloads" no dispositivo ANTES de baixar e usa
+     essa mesma pasta na aba "Downloads" (acesso feito pelo pasta.js);
   6. guarda favoritos/álbuns no navegador (localStorage).
 
 COMO O CÓDIGO ESTÁ ORGANIZADO (de cima para baixo)
@@ -27,13 +31,22 @@ MODELO DE DADOS
 ---------------
   Música (dict):  {"id", "nome", "artista", "capa", "audio"}
   favoritos:      {id_da_musica: música}        ← músicas favoritas
-  albuns:         {nome_do_album: [id, id, ...]} ← só guarda os ids; os dados
-                                                   da música vêm de `favoritos`
+  albuns:         {nome_do_album: [id, id, ...]} ← só guarda os ids, NA ORDEM em
+                                                   que devem tocar (editável)
+  catalogo:       {id_da_musica: música}        ← dados das músicas que estão em
+                                                   álbuns (assim o álbum funciona
+                                                   mesmo sem favoritar/baixar)
   arquivos_locais:[{"nome", "url"}, ...]        ← áudios achados na pasta
+
+  Para achar os dados de uma música use sempre obter_musica(id).
+  Fila de reprodução (quando um álbum está tocando):
+  fila = [ids na ordem em que vão tocar], fila_pos = posição atual,
+  fila_modo = "sequencia" | "aleatorio", fila_album = nome do álbum.
 """
 
 import asyncio
 import json
+import random
 import re
 from html import escape
 from urllib.parse import urlencode
@@ -85,6 +98,15 @@ np_capa = document.querySelector("#np-capa")
 np_nome = document.querySelector("#np-nome")
 np_artista = document.querySelector("#np-artista")
 toast = document.querySelector("#toast")
+np_controles = document.querySelector("#np-controles")   # botões ⏮ ⏭ (só com álbum tocando)
+
+# Painel "＋ Adicionar músicas" (janela sobreposta aberta de dentro de um álbum)
+modal_add = document.querySelector("#modal-add")
+add_titulo = document.querySelector("#add-titulo")
+add_form = document.querySelector("#add-form")
+campo_add = document.querySelector("#add-input")
+add_status = document.querySelector("#add-status")
+add_lista = document.querySelector("#add-lista")
 
 
 # =============================================================================
@@ -130,6 +152,48 @@ pasta_estado = "nenhuma"   # "nenhuma" | "pedir" (precisa permitir) | "ok"
 pasta_nome = ""
 arquivos_locais = []       # [{"nome", "url"}] áudios encontrados na pasta
 locais_por_chave = {}      # {chave: url} para casar Favoritos com arquivos da pasta
+
+# Álbuns: dados das músicas que estão dentro deles e fila de reprodução
+catalogo = carregar("catalogo", {})   # {id: música} músicas dos álbuns (favoritas ou não)
+resultados_add = {}                   # resultados da busca do painel ＋ {id: música}
+id_tocando = None                     # id da música no player (para destacar na lista)
+fila = []                             # ids na ordem em que vão tocar
+fila_pos = -1                         # posição atual dentro de `fila`
+fila_album = None                     # álbum dono da fila (None = nenhuma fila ativa)
+fila_modo = None                      # "sequencia" | "aleatorio" | None
+
+
+def obter_musica(id_):
+    """Devolve os dados de uma música pelo id, procurando em todos os lugares
+    onde ela pode estar: álbuns (catálogo), favoritos e busca do painel ＋.
+    Devolve None se não achar."""
+    return catalogo.get(id_) or favoritos.get(id_) or resultados_add.get(id_)
+
+
+def guardar_albuns():
+    """Grava álbuns + catálogo no localStorage.
+
+    Antes de gravar, apaga do catálogo as músicas que não estão em nenhum
+    álbum (senão o catálogo cresceria para sempre)."""
+    usados = {i for ids in albuns.values() for i in ids}
+    for i in [k for k in catalogo if k not in usados]:
+        del catalogo[i]
+    guardar("albuns", albuns)
+    guardar("catalogo", catalogo)
+
+
+def migrar_catalogo():
+    """Roda uma vez ao abrir o site. Álbuns criados na versão antiga só tinham
+    ids (os dados ficavam em Favoritos): copia esses dados para o catálogo, para
+    que desfavoritar uma música não a faça sumir do álbum. Ids sem dados em lugar
+    nenhum são removidos (já eram invisíveis)."""
+    for ids in albuns.values():
+        for i in list(ids):
+            if i not in catalogo and i in favoritos:
+                catalogo[i] = favoritos[i]
+            if i not in catalogo:
+                ids.remove(i)
+    guardar_albuns()
 
 
 # =============================================================================
@@ -207,13 +271,23 @@ def html_card(m):
     </article>"""
 
 
-def html_linha(m, modo):
-    """Linha de música usada nas telas Downloads e Álbum.
+def html_linha(m, modo, pos=0, total=0):
+    """Linha de música usada nas telas Favoritos e Álbum.
 
     modo="favorito": mostra "＋ Álbum", baixar e remover dos favoritos.
-    modo="album":    mostra apenas o botão de tirar a música do álbum.
+    modo="album":    mostra o número da faixa e os botões ▲ ▼ (mudar a ordem),
+                     baixar e tirar do álbum. `pos` (0, 1, 2…) e `total` dizem
+                     onde a música está na lista, para desligar ▲ na primeira e
+                     ▼ na última.
+    A linha da música que está no player recebe a classe "tocando-agora".
     """
     id_ = escape(m["id"])
+    classe = "linha tocando-agora" if m["id"] == id_tocando else "linha"
+    botao_baixar = (
+        f'<button class="icone pequeno" data-acao="baixar" data-id="{id_}" '
+        f'title="Baixar para a pasta">⬇</button>'
+    )
+    numero = ""
 
     if modo == "favorito":
         if albuns:
@@ -227,35 +301,58 @@ def html_linha(m, modo):
         else:
             # Ainda não existe nenhum álbum: leva o usuário a criar um.
             extra = '<button class="link" data-acao="ir-albuns">Criar álbum</button>'
-        botao_remover = (
-            f'<button class="icone pequeno" data-acao="baixar" data-id="{id_}" '
-            f'title="Baixar para a pasta">⬇</button>'
+        acoes = botao_baixar + (
             f'<button class="icone pequeno" data-acao="remover-favorito" data-id="{id_}" '
             f'title="Remover dos favoritos">✕</button>'
         )
+        acao_tocar = "tocar"
     else:
         extra = ""
-        botao_remover = (
+        numero = f'<span class="numero">{pos + 1}</span>'
+        sobe = " disabled" if pos == 0 else ""
+        desce = " disabled" if pos == total - 1 else ""
+        acoes = (
+            f'<button class="icone pequeno" data-acao="subir" data-id="{id_}" '
+            f'title="Mover para cima"{sobe}>▲</button>'
+            f'<button class="icone pequeno" data-acao="descer" data-id="{id_}" '
+            f'title="Mover para baixo"{desce}>▼</button>'
+            + botao_baixar +
             f'<button class="icone pequeno" data-acao="remover-do-album" data-id="{id_}" '
             f'title="Tirar do álbum">✕</button>'
         )
+        acao_tocar = "tocar-no-album"
 
-    selo = ""
-    if modo == "favorito" and url_local(m):
-        selo = ' · <b class="selo">💾 completa na pasta</b>'
+    selo = ' · <b class="selo">💾 completa na pasta</b>' if url_local(m) else ""
     return f"""
-    <li class="linha">
-      <button class="play" data-acao="tocar" data-id="{id_}" title="Tocar">▶</button>
+    <li class="{classe}">
+      {numero}
+      <button class="play" data-acao="{acao_tocar}" data-id="{id_}" title="Tocar">▶</button>
       <img src="{escape(m['capa'])}" alt="">
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}{selo}</span></div>
       {extra}
-      {botao_remover}
+      {acoes}
+    </li>"""
+
+
+def html_linha_add(m):
+    """Linha de um resultado no painel ＋: prévia, capa, nome e o botão
+    "＋ Adicionar a este álbum" (vira "✓ No álbum" se a música já está lá)."""
+    id_ = escape(m["id"])
+    ja = m["id"] in albuns.get(album_aberto, [])
+    classe = "btn-add ativo" if ja else "btn-add"
+    texto = "✓ No álbum" if ja else "＋ Adicionar a este álbum"
+    return f"""
+    <li class="linha">
+      <button class="play" data-acao="tocar-previa" data-id="{id_}" title="Ouvir prévia">▶</button>
+      <img src="{escape(m['capa'])}" alt="">
+      <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
+      <button class="{classe}" data-acao="add-neste-album" data-id="{id_}">{texto}</button>
     </li>"""
 
 
 def html_card_album(nome, ids):
     """Card de um álbum na tela de álbuns (mosaico de capas, nome e quantidade)."""
-    capas = [favoritos[i]["capa"] for i in ids if i in favoritos]
+    capas = [obter_musica(i)["capa"] for i in ids if obter_musica(i)]
     if len(capas) >= 4:                       # 4+ músicas: mosaico 2x2
         arte = '<div class="mosaico">' + "".join(
             f'<img src="{escape(c)}" alt="">' for c in capas[:4]
@@ -300,13 +397,15 @@ def renderizar_favoritos():
 def renderizar_downloads():
     """Escreve a tela 'Downloads': só os arquivos que de fato estão na pasta conectada."""
     if pasta_estado == "nenhuma" and not arquivos_locais:
-        TELAS["downloads"].innerHTML = """
+        TELAS["downloads"].innerHTML = f"""
         <div class="tela-topo"><div><h1>Downloads</h1><p>Nenhuma pasta conectada</p></div></div>
         <div class="vazio">
           <div class="vazio-icone">📁</div>
           <h2>Conecte uma pasta</h2>
-          <p>Escolha a pasta onde ficam suas músicas baixadas. Os arquivos de áudio dela aparecem aqui.</p>
-          <button class="primario" data-acao="escolher-pasta">Escolher pasta</button>
+          <p>Escolha UM local (ex.: dentro de “Músicas”). O site cria nele a pasta
+             “{escape(pasta.NOME_PASTA)}”, grava ali tudo o que você baixar com o botão ⬇
+             e mostra aqui os arquivos dessa mesma pasta.</p>
+          <button class="primario" data-acao="escolher-pasta">Escolher local e criar pasta</button>
         </div>"""
         return
 
@@ -369,26 +468,45 @@ def renderizar_albuns():
 
 
 def renderizar_album():
-    """Escreve a tela de UM álbum aberto (cabeçalho + músicas dele)."""
+    """Escreve a tela de UM álbum aberto: cabeçalho, barra de ações
+    (▶ Em sequência · 🔀 Aleatório · ＋) e as músicas na ordem editável."""
     if album_aberto not in albuns:
         return
-    ids = albuns[album_aberto]
-    musicas = [favoritos[i] for i in ids if i in favoritos]
+    musicas = [obter_musica(i) for i in albuns[album_aberto]]
+    musicas = [m for m in musicas if m]
+    total = len(musicas)
+
     if musicas:
-        corpo = '<ul class="lista">' + "".join(html_linha(m, "album") for m in musicas) + "</ul>"
+        corpo = '<ul class="lista">' + "".join(
+            html_linha(m, "album", pos, total) for pos, m in enumerate(musicas)
+        ) + "</ul>"
     else:
         corpo = """
         <div class="vazio">
           <div class="vazio-icone">🎶</div>
           <h2>Álbum vazio</h2>
-          <p>Vá em Favoritos e use o menu “＋ Álbum” nas músicas para adicioná-las aqui.</p>
-          <button class="primario" data-acao="ir-favoritos">Ir para Favoritos</button>
+          <p>Clique no botão ＋ para buscar músicas e adicioná-las aqui.
+             Não precisa favoritar nem baixar antes.</p>
+          <button class="primario" data-acao="abrir-add">＋ Adicionar músicas</button>
         </div>"""
+
+    # Destaca o botão do modo que está tocando este álbum agora.
+    tocando_aqui = fila_album == album_aberto
+    ativo_seq = " ativo" if tocando_aqui and fila_modo == "sequencia" else ""
+    ativo_alea = " ativo" if tocando_aqui and fila_modo == "aleatorio" else ""
+    sem_musicas = "" if musicas else " disabled"
+
     TELAS["album"].innerHTML = f"""
     <button class="voltar" data-acao="ir-albuns">← Álbuns</button>
     <div class="tela-topo">
-      <div><h1>{escape(album_aberto)}</h1><p>{plural(len(musicas), 'música', 'músicas')}</p></div>
+      <div><h1>{escape(album_aberto)}</h1><p>{plural(total, 'música', 'músicas')}</p></div>
       <button class="perigo" data-acao="excluir-album">Excluir álbum</button>
+    </div>
+    <div class="barra-album">
+      <button class="secundario{ativo_seq}" data-acao="tocar-sequencia"{sem_musicas}>▶ Em sequência</button>
+      <button class="secundario{ativo_alea}" data-acao="tocar-aleatorio"{sem_musicas}>🔀 Aleatório</button>
+      <button class="icone grande" data-acao="abrir-add" title="Adicionar músicas a este álbum"
+              aria-label="Adicionar músicas a este álbum">＋</button>
     </div>
     {corpo}"""
 
@@ -425,8 +543,12 @@ def ir_para(nova_tela, album=None):
     tela = nova_tela
     album_aberto = album
     fechar_menu()
+    fechar_painel_add()
     mostrar_tela()
     area_rolagem.scrollTop = 0
+    # Ao abrir Downloads, relê a pasta para mostrar arquivos novos.
+    if nova_tela == "downloads" and pasta_estado == "ok":
+        asyncio.ensure_future(atualizar_arquivos())
 
 
 # =============================================================================
@@ -479,43 +601,55 @@ def atualizar_botao_card(id_):
 def salvar_ou_remover_favorito(id_):
     """Se a música já está nos Favoritos, remove; se não está, salva.
 
-    Ao remover, ela também sai de todos os álbuns.
+    Remover dos Favoritos NÃO tira a música dos álbuns: os álbuns têm
+    seus próprios dados (catálogo) e podem ter músicas que nunca foram favoritas.
     """
     if id_ in favoritos:
         del favoritos[id_]
-        for ids in albuns.values():
-            if id_ in ids:
-                ids.remove(id_)
         avisar("Removida dos favoritos")
     elif id_ in resultados_atuais:
         favoritos[id_] = resultados_atuais[id_]
         avisar("Salva nos favoritos")
     guardar("biblioteca", favoritos)
-    guardar("albuns", albuns)
     atualizar_botao_card(id_)
     mostrar_tela()
 
 
-def tocar_no_player(nome, artista, capa, url):
-    """Coloca uma faixa no player fixo e começa a tocar."""
+def tocar_no_player(nome, artista, capa, url, id_=None):
+    """Coloca uma faixa no player fixo e começa a tocar.
+
+    `id_` (opcional) é o id da música; serve para destacar a linha dela na
+    tela do álbum.
+    """
+    global id_tocando
+    id_tocando = id_
     player.src = url
     player.play()
     np_capa.innerHTML = f'<img src="{escape(capa)}" alt="">' if capa else "♪"
     np_nome.textContent = nome
     np_artista.textContent = artista
+    if tela == "album":
+        renderizar_album()       # atualiza o destaque da faixa atual
 
 
-def tocar(id_):
-    """Toca um favorito. Se existir o arquivo COMPLETO na pasta de downloads, usa
-    ele; senão toca a prévia de 30 s que a API do iTunes fornece."""
-    musica = favoritos.get(id_)
+def tocar(id_, da_fila=False):
+    """Toca uma música (de qualquer lugar). Se existir o arquivo COMPLETO na pasta
+    de downloads, usa ele; senão toca a prévia de 30 s que a API do iTunes fornece.
+
+    `da_fila=False` significa "o usuário escolheu esta faixa avulsa": a fila do
+    álbum é encerrada. Quando é a própria fila que chama, passa `da_fila=True`.
+    """
+    musica = obter_musica(id_)
     if musica is None:
         return
+    if not da_fila:
+        encerrar_fila()
     local = url_local(musica)
     if local:
-        tocar_no_player(musica["nome"], musica["artista"], musica["capa"], local)
+        tocar_no_player(musica["nome"], musica["artista"], musica["capa"], local, id_)
     else:
-        tocar_no_player(musica["nome"], musica["artista"] + " · prévia de 30 s", musica["capa"], musica["audio"])
+        tocar_no_player(musica["nome"], musica["artista"] + " · prévia de 30 s",
+                        musica["capa"], musica["audio"], id_)
 
 
 def tocar_local(indice):
@@ -524,12 +658,105 @@ def tocar_local(indice):
         arq = arquivos_locais[int(indice)]
     except (ValueError, IndexError):
         return
+    encerrar_fila()
     capa, artista = "", "Pasta de downloads"
-    for m in favoritos.values():
+    for m in list(favoritos.values()) + list(catalogo.values()):
         if chave(nome_arquivo(m)) == chave(arq["nome"]):
             capa, artista = m["capa"], m["artista"]
             break
     tocar_no_player(arq["nome"], artista, capa, arq["url"])
+
+
+# ---------- Fila de reprodução do álbum ----------
+# Quando o usuário toca um álbum, montamos uma `fila` (lista de ids). Em
+# "sequencia" ela segue a ordem do álbum; em "aleatorio" é embaralhada UMA vez
+# (assim ⏮ ⏭ funcionam de forma previsível e nenhuma música repete antes de todas
+# tocarem). Quando uma faixa termina, o evento "ended" chama `avancar`.
+
+def atualizar_controles():
+    """Mostra os botões ⏮ ⏭ do player só quando existe uma fila ativa."""
+    np_controles.hidden = not fila
+
+
+def encerrar_fila():
+    """Desfaz a fila (a faixa atual continua tocando, mas nada toca depois dela)."""
+    global fila, fila_pos, fila_album, fila_modo
+    fila, fila_pos, fila_album, fila_modo = [], -1, None, None
+    atualizar_controles()
+
+
+def iniciar_fila(modo, primeiro=None):
+    """Começa a tocar o álbum aberto.
+
+    modo     "sequencia" (ordem da lista) ou "aleatorio" (embaralhado)
+    primeiro id da música onde começar (clique no ▶ de uma linha); None = o início.
+              No modo aleatório essa música toca primeiro e o resto é embaralhado.
+    """
+    global fila, fila_pos, fila_album, fila_modo
+    ids = [i for i in albuns.get(album_aberto, []) if obter_musica(i)]
+    if not ids:
+        avisar("O álbum está vazio")
+        return
+    if modo == "aleatorio":
+        random.shuffle(ids)
+        if primeiro in ids:
+            ids.remove(primeiro)
+            ids.insert(0, primeiro)
+        pos = 0
+    else:
+        pos = ids.index(primeiro) if primeiro in ids else 0
+    fila, fila_pos, fila_album, fila_modo = ids, pos, album_aberto, modo
+    atualizar_controles()
+    tocar(fila[fila_pos], da_fila=True)
+
+
+def avancar(passo, automatico=False):
+    """Vai para a próxima (+1) ou anterior (-1) faixa da fila.
+
+    automatico=True: foi o fim de uma faixa. No fim da fila o álbum PARA.
+    automatico=False: o usuário clicou ⏮/⏭. Nas pontas, dá a volta (circular).
+    """
+    global fila_pos, id_tocando
+    if not fila:
+        return
+    novo = fila_pos + passo
+    if automatico and novo >= len(fila):
+        encerrar_fila()
+        id_tocando = None
+        avisar("Fim do álbum")
+        if tela == "album":
+            renderizar_album()
+        return
+    fila_pos = novo % len(fila)
+    tocar(fila[fila_pos], da_fila=True)
+
+
+def sincronizar_fila():
+    """Chamada depois de editar o álbum (mover, adicionar, remover, excluir) para
+    a fila acompanhar a mudança sem interromper a faixa atual.
+
+    sequencia: refaz a fila com a nova ordem e continua depois da faixa atual.
+    aleatorio: mantém a ordem sorteada, tira as removidas e põe as novas no fim.
+    """
+    global fila, fila_pos
+    if not fila:
+        return
+    if fila_album not in albuns:          # álbum excluído
+        encerrar_fila()
+        return
+    ids = [i for i in albuns[fila_album] if obter_musica(i)]
+    atual = fila[fila_pos] if 0 <= fila_pos < len(fila) else None
+    if fila_modo == "sequencia":
+        nova = list(ids)
+    else:
+        nova = [i for i in fila if i in ids] + [i for i in ids if i not in fila]
+    if atual in nova:
+        pos = nova.index(atual)
+    else:                                  # a faixa atual foi removida
+        pos = min(fila_pos, len(nova)) - 1     # "próxima" cai na que ocupou o lugar dela
+    fila, fila_pos = nova, pos
+    if not fila:
+        encerrar_fila()
 
 
 # ---------- Pasta de downloads ----------
@@ -557,10 +784,18 @@ async def iniciar_pasta():
         mostrar_tela()
 
 
+MSG_PASTA_RECUSADA = "O navegador recusou essa pasta. Escolha ou crie uma subpasta (ex.: Músicas/Meus sons)."
+
+
 async def escolher_pasta():
-    """Abre o seletor de pasta (disparado por um clique do usuário)."""
+    """Abre o seletor de LOCAL (disparado por um clique) e cria nele a pasta
+    "SoundTrack Downloads", que passa a ser a pasta de downloads."""
     global pasta_estado, pasta_nome
-    nome = await pasta.escolher()
+    try:
+        nome = await pasta.escolher()
+    except Exception:
+        avisar(MSG_PASTA_RECUSADA)
+        return
     if not nome:
         return
     pasta_nome = nome
@@ -580,33 +815,94 @@ async def permitir_pasta():
 
 
 async def baixar(id_):
-    """Baixa o áudio de um favorito para a pasta (ou pelo download do navegador)."""
-    musica = favoritos.get(id_)
+    """Baixa o áudio de uma música (favorita ou de álbum) para a pasta.
+
+    ORDEM DOS PASSOS (importante):
+      1. `pasta.preparar()` CRIA a pasta "SoundTrack Downloads" (ou confirma que
+         ela existe / recria se foi apagada). Vem PRIMEIRO porque o navegador só
+         deixa abrir o seletor de pasta logo depois de um clique do usuário.
+      2. Só então o áudio é baixado e gravado dentro dela (`pasta.salvar`).
+      3. O estado da pasta no site é atualizado, para a aba Downloads mostrar
+         exatamente a mesma pasta que acabou de receber o arquivo.
+    """
+    global pasta_estado, pasta_nome
+    musica = obter_musica(id_)
     if musica is None:
         return
+
+    estado = await pasta.preparar()     # 1) pasta criada/confirmada ANTES de baixar
+    if estado == "cancelado":
+        avisar("Download cancelado: nenhuma pasta escolhida")
+        return
+    if estado == "recusada":
+        avisar(MSG_PASTA_RECUSADA)
+        return
+    if estado == "ok":
+        pasta_estado = "ok"             # 3) a aba Downloads passa a usar esta pasta
+        pasta_nome = pasta.nome()
+
     avisar("Baixando…")
     try:
-        destino = await pasta.salvar(nome_arquivo(musica) + ".m4a", musica["audio"])
+        destino = await pasta.salvar(nome_arquivo(musica) + ".m4a", musica["audio"])   # 2)
     except Exception:
         avisar("Não foi possível baixar")
         return
     if destino == "pasta":
-        avisar("Salvo na pasta de downloads")
+        avisar(f"Salvo em “{pasta_nome}”")
         await atualizar_arquivos()
     else:
-        avisar("Download iniciado (conecte uma pasta para salvar nela)")
+        avisar("Download iniciado (este navegador não permite escolher a pasta)")
 
 
-def adicionar_ao_album(nome, id_):
-    """Coloca a música (pelo id) dentro do álbum `nome`, sem repetir."""
+# ---------- Álbuns ----------
+def adicionar_ao_album(nome, id_, musica=None):
+    """Coloca a música (pelo id) no FIM do álbum `nome`, sem repetir.
+
+    `musica` (opcional): dados da música quando ela ainda não está salva em
+    lugar nenhum (veio da busca do painel ＋). Sempre copiamos os dados para o
+    catálogo, para o álbum não depender dos Favoritos.
+    Devolve True se adicionou, False se já estava lá (ou não achou a música).
+    """
+    musica = musica or obter_musica(id_)
+    if musica is None:
+        return False
     ids = albuns.setdefault(nome, [])
     if id_ in ids:
         avisar(f"Já está em “{nome}”")
-        return
+        return False
+    catalogo[id_] = musica
     ids.append(id_)
-    guardar("albuns", albuns)
+    guardar_albuns()
+    sincronizar_fila()
     avisar(f"Adicionada a “{nome}”")
     mostrar_tela()
+    return True
+
+
+def mover(id_, delta):
+    """Move a música uma posição para cima (delta=-1) ou para baixo (delta=+1)
+    no álbum aberto, trocando de lugar com a vizinha. A nova ordem é salva e é
+    a que o modo "Em sequência" vai tocar."""
+    ids = albuns.get(album_aberto)
+    if not ids or id_ not in ids:
+        return
+    i = ids.index(id_)
+    j = i + delta
+    if not 0 <= j < len(ids):
+        return
+    ids[i], ids[j] = ids[j], ids[i]
+    guardar_albuns()
+    sincronizar_fila()
+    mostrar_tela()
+
+
+def tirar_do_album(id_):
+    """Tira a música do álbum aberto (ela continua nos Favoritos, se estiver lá)."""
+    if id_ in albuns.get(album_aberto, []):
+        albuns[album_aberto].remove(id_)
+        guardar_albuns()
+        sincronizar_fila()
+        mostrar_tela()
 
 
 def criar_album(evento):
@@ -619,19 +915,98 @@ def criar_album(evento):
         avisar("Já existe um álbum com esse nome")
         return
     albuns[nome] = []
-    guardar("albuns", albuns)
+    guardar_albuns()
     campo_album.value = ""
     avisar(f"Álbum “{nome}” criado")
     mostrar_tela()
 
 
 def excluir_album():
-    """Exclui o álbum aberto (pede confirmação). As músicas continuam nos Favoritos."""
-    if window.confirm(f"Excluir o álbum “{album_aberto}”? As músicas continuam nos Favoritos."):
+    """Exclui o álbum aberto (pede confirmação). Favoritos e arquivos baixados não são afetados."""
+    if window.confirm(f"Excluir o álbum “{album_aberto}”? Favoritos e arquivos baixados não são apagados."):
         albuns.pop(album_aberto, None)
-        guardar("albuns", albuns)
+        guardar_albuns()
+        sincronizar_fila()
         avisar("Álbum excluído")
         ir_para("albuns")
+
+
+# ---------- Painel "＋ Adicionar músicas" ----------
+# Janela sobreposta (#modal-add, definida no index.html) aberta pelo botão ＋ do
+# álbum. Tem a sua PRÓPRIA busca; cada resultado tem o botão "Adicionar a este
+# álbum". A música não precisa estar nos Favoritos nem ter sido baixada.
+
+def abrir_painel_add():
+    """Abre o painel de busca para adicionar músicas ao álbum aberto."""
+    if album_aberto not in albuns:
+        return
+    add_titulo.textContent = f"Adicionar a “{album_aberto}”"
+    add_status.textContent = "Busque um artista ou música para adicionar."
+    add_lista.innerHTML = ""
+    campo_add.value = ""
+    modal_add.hidden = False
+    campo_add.focus()
+
+
+def fechar_painel_add():
+    """Fecha o painel ＋."""
+    modal_add.hidden = True
+
+
+def ao_enviar_busca_add(evento):
+    """Envio do formulário do painel ＋ (Enter ou botão Buscar)."""
+    evento.preventDefault()
+    asyncio.ensure_future(executar_busca_add())
+
+
+async def executar_busca_add():
+    """Busca na API do iTunes e lista os resultados dentro do painel ＋."""
+    global resultados_add
+    termo = campo_add.value.strip()
+    if not termo:
+        add_status.textContent = "Digite o nome de um artista ou música."
+        return
+    add_lista.innerHTML = ""
+    add_status.textContent = "Buscando músicas…"
+    try:
+        resultados = await buscar_musicas(termo)
+    except Exception:
+        add_status.textContent = "Erro ao buscar. Verifique sua internet e tente de novo."
+        return
+    musicas = [simplificar(m) for m in resultados if m.get("previewUrl")]
+    if not musicas:
+        add_status.textContent = "Não encontramos resultados."
+        return
+    resultados_add = {m["id"]: m for m in musicas}
+    add_status.textContent = f"{len(musicas)} resultados para “{termo}”"
+    add_lista.innerHTML = "".join(html_linha_add(m) for m in musicas)
+
+
+def atualizar_botao_add(id_):
+    """Troca o botão do resultado para "✓ No álbum" (sem refazer a lista)."""
+    botao = document.querySelector(f'[data-acao="add-neste-album"][data-id="{id_}"]')
+    if botao is not None:
+        botao.className = "btn-add ativo"
+        botao.textContent = "✓ No álbum"
+
+
+def adicionar_do_painel(id_):
+    """Clique em "Adicionar a este álbum": coloca o resultado no álbum aberto."""
+    musica = resultados_add.get(id_)
+    if musica is None:
+        return
+    adicionar_ao_album(album_aberto, id_, musica)
+    atualizar_botao_add(id_)
+
+
+def tocar_previa(id_):
+    """Ouve a prévia de 30 s de um resultado do painel ＋ antes de adicionar."""
+    musica = resultados_add.get(id_)
+    if musica is None:
+        return
+    encerrar_fila()
+    tocar_no_player(musica["nome"], musica["artista"] + " · prévia de 30 s",
+                    musica["capa"], musica["audio"], id_)
 
 
 # ---------- Busca ----------
@@ -698,22 +1073,33 @@ def ao_clicar(evento):
     desenho de tela), escutamos o documento todo e olhamos o atributo
     data-acao do elemento clicado.
 
-      data-acao       o que faz
-      --------------  ---------------------------------------------
-      menu            abre/fecha o pop-up ☰
-      ir-albuns       vai para a tela Álbuns
-      ir-favoritos    vai para a tela Favoritos
-      ir-downloads    vai para a tela Downloads (pasta)
-      ir-busca        vai para a tela de busca
-      abrir-album     abre um álbum (nome em data-nome)
-      excluir-album   exclui o álbum aberto
-      salvar          salva/remove a música do card nos Favoritos
+      data-acao        o que faz
+      ---------------  ---------------------------------------------
+      menu             abre/fecha o pop-up ☰
+      ir-albuns        vai para a tela Álbuns
+      ir-favoritos     vai para a tela Favoritos
+      ir-downloads     vai para a tela Downloads (pasta)
+      ir-busca         vai para a tela de busca
+      abrir-album      abre um álbum (nome em data-nome)
+      excluir-album    exclui o álbum aberto
+      salvar           salva/remove a música do card nos Favoritos
       remover-favorito remove a música dos Favoritos
-      baixar          baixa o áudio de um favorito para a pasta
+      baixar           cria a pasta (se preciso) e baixa o áudio nela
       escolher-pasta / permitir-pasta / atualizar-pasta   controle da pasta
-      tocar-local     toca um arquivo da aba Downloads
+      tocar-local      toca um arquivo da aba Downloads
+      tocar            toca uma música avulsa (id em data-id)
+      -- álbum --
+      tocar-sequencia  toca o álbum na ordem da lista
+      tocar-aleatorio  toca o álbum embaralhado
+      tocar-no-album   ▶ de uma linha do álbum: começa a fila dali
+      subir / descer   move a música uma posição na lista do álbum
       remover-do-album tira a música do álbum aberto
-      tocar           toca a música no player fixo (id em data-id)
+      anterior/proxima botões ⏮ ⏭ do player (com álbum tocando)
+      -- painel ＋ --
+      abrir-add        abre o painel de busca do álbum
+      fechar-add       fecha o painel (✕ ou clique no fundo)
+      add-neste-album  adiciona o resultado ao álbum aberto
+      tocar-previa     ouve a prévia de um resultado do painel
     """
     # Clique fora do pop-up fecha o pop-up
     if evento.target.closest(".menu-wrap") is None:
@@ -751,13 +1137,36 @@ def ao_clicar(evento):
         asyncio.ensure_future(atualizar_arquivos())
     elif acao == "tocar-local":
         tocar_local(alvo.getAttribute("data-i"))
-    elif acao == "remover-do-album":
-        if id_ in albuns.get(album_aberto, []):
-            albuns[album_aberto].remove(id_)
-            guardar("albuns", albuns)
-            mostrar_tela()
     elif acao == "tocar":
         tocar(id_)
+    # ---- álbum ----
+    elif acao == "tocar-sequencia":
+        iniciar_fila("sequencia")
+    elif acao == "tocar-aleatorio":
+        iniciar_fila("aleatorio")
+    elif acao == "tocar-no-album":
+        # Mantém o modo que já estava tocando este álbum; senão, sequência.
+        modo = fila_modo if fila_album == album_aberto and fila_modo else "sequencia"
+        iniciar_fila(modo, id_)
+    elif acao == "subir":
+        mover(id_, -1)
+    elif acao == "descer":
+        mover(id_, 1)
+    elif acao == "remover-do-album":
+        tirar_do_album(id_)
+    elif acao == "anterior":
+        avancar(-1)
+    elif acao == "proxima":
+        avancar(1)
+    # ---- painel ＋ ----
+    elif acao == "abrir-add":
+        abrir_painel_add()
+    elif acao == "fechar-add":
+        fechar_painel_add()
+    elif acao == "add-neste-album":
+        adicionar_do_painel(id_)
+    elif acao == "tocar-previa":
+        tocar_previa(id_)
 
 
 def ao_mudar(evento):
@@ -775,21 +1184,42 @@ def pausar_outros(evento):
 
 
 def ao_teclar(evento):
-    """Tecla Esc fecha o pop-up."""
+    """Tecla Esc fecha o pop-up do menu e o painel ＋."""
     if evento.key == "Escape":
         fechar_menu()
+        fechar_painel_add()
+
+
+def ao_terminar_faixa(evento):
+    """O player fixo chegou ao fim da faixa: se há um álbum tocando, vai para a próxima."""
+    if evento.target.id == "player" and fila:
+        avancar(1, automatico=True)
+
+
+def ao_falhar_faixa(evento):
+    """O player não conseguiu carregar a faixa: avisa e pula para a próxima da fila.
+
+    (O evento "error" também dispara para imagens quebradas, por isso filtramos
+    só o #player.)"""
+    if evento.target.id == "player" and fila:
+        avisar("Faixa indisponível, pulando…")
+        avancar(1, automatico=True)
 
 
 # Ligando os ouvintes aos eventos. `create_proxy` permite que o JavaScript do
 # navegador chame nossas funções Python.
 form_busca.addEventListener("submit", create_proxy(ao_enviar_busca))
 form_album.addEventListener("submit", create_proxy(criar_album))
+add_form.addEventListener("submit", create_proxy(ao_enviar_busca_add))
 document.addEventListener("click", create_proxy(ao_clicar))
 document.addEventListener("change", create_proxy(ao_mudar))
 document.addEventListener("keydown", create_proxy(ao_teclar))
 # O evento 'play' não "borbulha" até o documento, então usamos a fase de
 # captura (o True no final) para ouvi-lo.
 document.addEventListener("play", create_proxy(pausar_outros), True)
+# "ended" e "error" também não borbulham: mesma técnica (fase de captura).
+document.addEventListener("ended", create_proxy(ao_terminar_faixa), True)
+document.addEventListener("error", create_proxy(ao_falhar_faixa), True)
 botao_tema.addEventListener("click", create_proxy(alternar_tema))
 
 
@@ -800,5 +1230,6 @@ tema_salvo = carregar("tema", None)
 if tema_salvo:
     document.documentElement.setAttribute("data-theme", tema_salvo)
 
-mostrar_tela()   # desenha a tela inicial (busca) e os contadores do menu
+migrar_catalogo()   # compatibilidade com álbuns criados antes do catálogo existir
+mostrar_tela()      # desenha a tela inicial (busca) e os contadores do menu
 asyncio.ensure_future(iniciar_pasta())   # reencontra a pasta de downloads
