@@ -1,3 +1,4 @@
+import asyncio
 from urllib.parse import urlencode
 
 from pyscript import document, window
@@ -66,8 +67,14 @@ grade.addEventListener("play", create_proxy(pausar_outros), True)
 
 
 # ---------- Fluxo principal ----------
-async def ao_buscar(evento):
-    evento.preventDefault()  # impede o form de recarregar a página
+def ao_enviar(evento):
+    # Função NORMAL (não async): o preventDefault precisa rodar na hora,
+    # antes de o navegador recarregar a página.
+    evento.preventDefault()
+    asyncio.ensure_future(ao_buscar())
+
+
+async def ao_buscar():
     termo = campo.value.strip()
     if not termo:
         status.textContent = "Digite o nome de um artista ou música."
@@ -94,7 +101,7 @@ async def ao_buscar(evento):
         grade.appendChild(criar_card(musica))
 
 
-form.addEventListener("submit", create_proxy(ao_buscar))
+form.addEventListener("submit", create_proxy(ao_enviar))
 
 
 # ---------- Modo escuro / claro ----------
