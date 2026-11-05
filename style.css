@@ -412,3 +412,61 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   color: var(--text);
   font-size: 0.85rem;
 }
+
+/* ---------- 13. ÁLBUM EDITÁVEL E PAINEL ＋ (adicionado) ----------
+   Novidades: barra de ações do álbum, número/destaque das faixas, botões
+   ▲ ▼ desativados nas pontas, controles ⏮ ⏭ do player e a janela do painel ＋. */
+
+/* Barra "Em sequência / Aleatório / ＋" no topo do álbum */
+.barra-album { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.2rem; }
+.secundario.ativo { background: var(--accent); color: #fff; border-color: var(--accent); }
+.secundario:disabled { opacity: 0.45; cursor: default; }
+.icone.grande { width: 44px; height: 44px; font-size: 1.4rem; background: var(--accent); color: #fff; border-color: var(--accent); }
+.icone.grande:hover { background: var(--accent); filter: brightness(1.12); }
+
+/* Linhas do álbum: número da faixa e destaque da que está tocando */
+.numero { min-width: 1.4rem; text-align: center; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+.linha.tocando-agora { border-color: var(--accent); background: var(--accent-soft); }
+.icone.pequeno:disabled { opacity: 0.3; cursor: default; }
+.icone.pequeno:disabled:hover { background: var(--surface-2); }
+
+/* ⏮ ⏭ no player fixo */
+.controles { display: flex; gap: 0.4rem; }
+
+/* Janela do painel ＋ */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1rem; }
+.modal-fundo { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+.modal-painel {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem;
+  border-radius: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.modal-topo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
+.modal-topo h2 { margin: 0; font-size: 1.2rem; overflow-wrap: anywhere; }
+.modal-painel .album-form { max-width: none; margin-bottom: 0.8rem; }
+#add-status { margin: 0 0 0.8rem; color: var(--muted); font-weight: 500; }
+#add-lista { overflow-y: auto; }   /* só a lista rola; busca e título ficam fixos */
+.btn-add {
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-add:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-add.ativo { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+@media (max-width: 720px) {
+  .controles { justify-content: center; }
+  .modal-painel { max-height: 90dvh; padding: 1rem; }
+}
