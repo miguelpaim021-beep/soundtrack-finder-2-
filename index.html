@@ -2,23 +2,7 @@
 <!--
   SoundTrack Finder — ESTRUTURA DA PÁGINA (HTML)
   ------------------------------------------------
-  Este arquivo só define "o que existe" na tela. Quem dá vida a tudo é o main.py,
-  que encontra os elementos pelos seus id's (ex.: #search-input) e escreve neles.
-
-  Blocos principais:
-    0. pasta.js                  → acesso à pasta de downloads (File System Access API)
-    1. <header class="topbar">   → botão de menu (☰), marca, busca e botão de tema
-    2. <div class="scroll">      → as 5 "telas" (só uma fica visível por vez)
-         #tela-busca      resultados da busca na API do iTunes
-         #tela-favoritos  músicas favoritadas pelo usuário
-         #tela-downloads  arquivos de áudio da pasta conectada
-         #tela-albuns     lista de álbuns + formulário para criar álbum
-         #tela-album      conteúdo de UM álbum aberto
-    3. <footer class="player-bar"> → player de áudio fixo na parte de baixo
-    4. #toast                    → mensagem rápida de aviso ("Álbum criado")
-
-  Os atributos data-acao="..." marcam botões clicáveis. O main.py escuta os
-  cliques na página inteira e decide o que fazer pelo valor de data-acao.
+  Este arquivo define a estrutura visual da aplicação.
 -->
 <html lang="pt-BR" data-theme="dark">
 <head>
@@ -44,7 +28,7 @@
     <!-- ================= TOPO ================= -->
     <header class="topbar">
 
-      <!-- Botão ☰ (canto superior esquerdo) + pop-up com as 2 opções -->
+      <!-- Botão ☰ (canto superior esquerdo) + pop-up com as opções -->
       <div class="menu-wrap">
         <button id="menu-btn" class="icone" data-acao="menu" type="button"
                 aria-label="Abrir menu" aria-expanded="false">☰</button>
@@ -57,12 +41,12 @@
           </button>
           <button class="menu-opcao" data-acao="ir-favoritos" type="button">
             <span class="menu-icone">⭐</span>
-            <span class="menu-texto"><strong>Favoritos</strong><small>Músicas que você curtiu</small></span>
+            <span class="menu-texto"><strong>Favoritos</strong><small>Músicas favoritas</small></span>
             <span class="menu-qtd" id="menu-qtd-favoritos">0</span>
           </button>
           <button class="menu-opcao" data-acao="ir-downloads" type="button">
             <span class="menu-icone">⬇️</span>
-            <span class="menu-texto"><strong>Downloads</strong><small>Arquivos da sua pasta</small></span>
+            <span class="menu-texto"><strong>Downloads</strong><small>Músicas baixadas</small></span>
             <span class="menu-qtd" id="menu-qtd-downloads">0</span>
           </button>
           <button class="menu-opcao" data-acao="ir-local" type="button">
@@ -98,13 +82,16 @@
         <main id="grid"></main>
       </section>
 
-      <!-- TELA 2: Favoritos (conteúdo escrito pelo main.py) -->
+      <!-- TELA 2: Favoritos -->
       <section id="tela-favoritos" hidden></section>
 
-      <!-- TELA 2b: Downloads = arquivos reais da pasta do usuário (escrito pelo main.py) -->
+      <!-- TELA 3: Downloads -->
       <section id="tela-downloads" hidden></section>
 
-      <!-- TELA 3: Lista de álbuns -->
+      <!-- TELA 4: Dispositivo (Local) -->
+      <section id="tela-local" hidden></section>
+
+      <!-- TELA 5: Lista de álbuns -->
       <section id="tela-albuns" hidden>
         <div class="tela-topo">
           <div>
@@ -121,11 +108,8 @@
         <div id="albuns-grid" class="albuns-grid"></div>
       </section>
 
-      <!-- TELA 4: Um álbum aberto (conteúdo escrito pelo main.py) -->
+      <!-- TELA 6: Um álbum aberto -->
       <section id="tela-album" hidden></section>
-      
-      <!-- TELA: Dispositivo (músicas locais da pasta) -->
-      <section id="tela-local" hidden></section>
     </div>
 
     <!-- ================= PLAYER FIXO ================= -->
@@ -144,47 +128,61 @@
     <div id="toast" class="toast" role="status"></div>
   </div>
 
-  <!-- Acesso à pasta de downloads (precisa carregar ANTES do Python) -->
-  <script src="./pasta.js"></script>
-
-  <!-- Aqui o Python é carregado -->
-  <script type="py" src="./main.py" config="./pyscript.toml"></script>
+  <!-- Funções auxiliares do Navegador (Downloads e Leitura de Pasta Local) -->
   <script>
-  <script>
-  // Armazena as músicas locais carregadas da pasta do dispositivo
-  let localMusicas = [];
+    let pastaHandleGlobal = null;
+    let localMusicas = [];
 
-  async function selecionarPastaDispositivo() {
-    try {
-      const dirHandle = await window.showDirectoryPicker();
-      localMusicas = [];
-      
-      for await (const entry of dirHandle.values()) {
-        if (entry.kind === 'file') {
-          const file = await entry.getFile();
-          const ext = file.name.split('.').pop().toLowerCase();
-          if (['mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac'].includes(ext)) {
-            const audioUrl = URL.createObjectURL(file);
-            localMusicas.push({
-              id: 'local_' + file.name,
-              nome: file.name.replace(/\.[^/.]+$/, ""),
-              artista: "Pasta Local",
-              capa: "",
-              audio: audioUrl
-            });
+    async function selecionarPastaDownloads() {
+      try {
+        pastaHandleGlobal = await window.showDirectoryPicker();
+        alert("Pasta de downloads selecionada com sucesso!");
+        return true;
+      } catch (err) {
+        console.log("Seleção de pasta cancelada.");
+        return false;
+      }
+    }
+
+    async function selecionarPastaDispositivo() {
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        localMusicas = [];
+        
+        for await (const entry of dirHandle.values()) {
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (['mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac'].includes(ext)) {
+              const audioUrl = URL.createObjectURL(file);
+              localMusicas.push({
+                id: 'local_' + file.name,
+                nome: file.name.replace(/\.[^/.]+$/, ""),
+                artista: "Pasta Local",
+                capa: "",
+                audio: audioUrl
+              });
+            }
           }
         }
+        alert(`${localMusicas.length} músicas de áudio encontradas na pasta!`);
+        
+        if (window.atualizarTelaLocalPy) {
+          window.atualizarTelaLocalPy();
+        }
+      } catch (err) {
+        console.log("Seleção de pasta cancelada ou não suportada.", err);
       }
-      alert(`${localMusicas.length} músicas de áudio encontradas na pasta!`);
-      
-      // Atualiza a tela no Python se a função estiver registrada
-      if (window.atualizarTelaLocalPy) {
-        window.atualizarTelaLocalPy();
-      }
-    } catch (err) {
-      console.log("Seleção de pasta cancelada ou não suportada pelo navegador.", err);
     }
-  }
-</script>
-</body>
-</html>
+
+    async function baixarArquivoNoAparelho(url, nomeArquivo) {
+      const nomeFormatado = nomeArquivo.endsWith(".m4a") ? nomeArquivo : nomeArquivo + ".m4a";
+      
+      if (pastaHandleGlobal) {
+        try {
+          const fileHandle = await pastaHandleGlobal.getFileHandle(nomeFormatado, { create: true });
+          const writable = await fileHandle.createWritable();
+          const response = await fetch(url);
+          const blob = await response.blob();
+          await writable.write(blob);
+          await writable.close();
