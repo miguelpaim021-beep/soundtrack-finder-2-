@@ -133,9 +133,12 @@ def html_linha_favorito(m):
         extra = '<button class="link" data-acao="ir-albuns">Criar álbum</button>'
 
     baixada = id_ in downloads
-    texto_baixar = "⬇ Baixado" if baixada else "⬇ Baixar"
+    titulo_baixar = "Baixado" if baixada else "Baixar música"
     classe_baixar = "icone pequeno ativo" if baixada else "icone pequeno"
-    btn_baixar = f'<button class="{classe_baixar}" data-acao="baixar-musica" data-id="{id_}" data-nome="{escape(m["nome"])}" data-artista="{escape(m["artista"])}" data-capa="{escape(m["capa"])}" data-audio="{escape(m["audio"])}" title="Baixar música">{texto_baixar}</button>'
+    
+    # Exibe apenas o ícone sem texto quebrado
+    icone_texto = "✓" if baixada else "⬇"
+    btn_baixar = f'<button class="{classe_baixar}" data-acao="baixar-musica" data-id="{id_}" data-nome="{escape(m["nome"])}" data-artista="{escape(m["artista"])}" data-capa="{escape(m["capa"])}" data-audio="{escape(m["audio"])}" title="{titulo_baixar}">{icone_texto}</button>'
 
     botao_remover = (
         f'<button class="icone pequeno" data-acao="remover-favorito" data-id="{id_}" '
@@ -666,3 +669,4 @@ if tema_salvo:
     document.documentElement.setAttribute("data-theme", tema_salvo)
 
 mostrar_tela()
+    
