@@ -390,3 +390,25 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   #player { width: 100%; }
   .toast { bottom: 130px; }
 }
+
+/* ---------- 12. FAVORITOS / DOWNLOADS (adicionado) ---------- */
+.grupo { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.secundario {
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.secundario:hover { background: var(--accent-soft); }
+.selo { color: var(--accent) !important; font-weight: 600; }
+.nota {
+  margin: 0 0 1rem;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.85rem;
+}
