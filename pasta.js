@@ -15,14 +15,6 @@
        Downloads lê dela. Assim as duas coisas sempre apontam para o mesmo lugar.
 
   Se a pasta for apagada depois, ela é recriada no mesmo local ao baixar de novo.
-
-  ORDEM DE UM DOWNLOAD (main.py → baixar)
-  ---------------------------------------
-    1. preparar()  → cria "SoundTrack Downloads" (ou confirma que existe) e pede
-                     as permissões. É feito ANTES de qualquer transferência.
-    2. salvar()    → baixa o áudio e grava dentro dessa pasta.
-    3. listar()    → a aba Downloads lê a MESMA pasta (dirHandle) — não existe
-                     outra pasta no caminho, então as duas partes nunca divergem.
   Se o botão ⬇ for usado sem nenhuma pasta escolhida, o navegador pergunta o
   local na hora (e cria a pasta) antes de baixar.
 
@@ -45,8 +37,6 @@
     restaurar()       reencontra a pasta da visita anterior → "nenhuma"|"pedir"|"ok"
     escolher()        abre o seletor, cria a pasta → nome da pasta ("" = cancelou)
     permitir()        pede ao navegador permissão para voltar a usar a pasta
-    preparar()        (NOVO) cria/confirma a pasta ANTES de baixar → "ok"|"cancelado"|
-                      "sem-suporte"|"recusada"
     nome()            nome da pasta atual
     listar()          lê os áudios da pasta → JSON [{nome, url}]
     salvar(nome,url)  baixa `url` e grava na pasta → "pasta"|"download"|"cancelado"
@@ -222,18 +212,6 @@
       });
     },
 
-    /**
-     * (Clique) Garante que a pasta "SoundTrack Downloads" exista e esteja liberada
-     * para gravação ANTES de baixar: abre o seletor de local se ainda não há pasta,
-     * pede permissão se ela foi lembrada de outra visita, recria se foi apagada.
-     * Devolve: "ok" | "cancelado" | "sem-suporte" | "recusada" (o navegador
-     * não aceitou a pasta escolhida, ex.: pasta de sistema).
-     */
-    async preparar() {
-      try { return await garantir(); }
-      catch (e) { return "recusada"; }
-    },
-
     /** (Clique) Pede permissão para voltar a usar a pasta lembrada; recria se foi apagada. */
     async permitir() {
       if (!dirHandle) return false;
@@ -252,8 +230,7 @@
       urls = [];
       const saida = [];
       if (dirHandle && (await temPermissao(dirHandle))) {
-        // Se a pasta foi apagada fora do site, a leitura falha: mostramos lista vazia.
-        try { await percorrer(dirHandle, 0, saida); } catch (e) { /* pasta sumiu */ }
+        await percorrer(dirHandle, 0, saida);
       } else {
         for (const f of arquivosSolto) {
           const url = URL.createObjectURL(f);
