@@ -1,7 +1,5 @@
 """
 SoundTrack Finder — lógica da aplicação
-=======================================
-Python rodando dentro do navegador (PyScript).
 """
 
 import asyncio
@@ -14,10 +12,6 @@ from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
 
-
-# =============================================================================
-# 1. ELEMENTOS DA PÁGINA
-# =============================================================================
 API_URL = "https://itunes.apple.com/search"
 LIMITE = 12
 
@@ -55,10 +49,6 @@ np_nome = document.querySelector("#np-nome")
 np_artista = document.querySelector("#np-artista")
 toast = document.querySelector("#toast")
 
-
-# =============================================================================
-# 2. ARMAZENAMENTO (localStorage)
-# =============================================================================
 def carregar(chave, padrao):
     try:
         texto = window.localStorage.getItem(chave)
@@ -66,17 +56,12 @@ def carregar(chave, padrao):
     except Exception:
         return padrao
 
-
 def guardar(chave, valor):
     try:
         window.localStorage.setItem(chave, json.dumps(valor))
     except Exception:
         pass
 
-
-# =============================================================================
-# 3. ESTADO DA APLICAÇÃO
-# =============================================================================
 favoritos = carregar("favoritos", {})
 downloads = carregar("downloads", {})
 albuns = carregar("albuns", {})
@@ -86,10 +71,6 @@ tela = "busca"
 album_aberto = None
 timer_aviso = None
 
-
-# =============================================================================
-# 4. API DO iTUNES
-# =============================================================================
 async def buscar_musicas(termo):
     params = urlencode({"term": termo, "entity": "song", "limit": LIMITE})
     resposta = await pyfetch(f"{API_URL}?{params}")
@@ -97,7 +78,6 @@ async def buscar_musicas(termo):
         raise RuntimeError(f"Erro HTTP {resposta.status}")
     dados = await resposta.json()
     return dados["results"]
-
 
 def simplificar(m):
     capa = m.get("artworkUrl100", "").replace("100x100", "300x300")
@@ -111,13 +91,8 @@ def simplificar(m):
         "audio_completo": preview,
     }
 
-
-# =============================================================================
-# 5. MONTAGEM DO HTML
-# =============================================================================
 def plural(n, singular, plural_):
     return f"{n} {singular if n == 1 else plural_}"
-
 
 def html_card(m):
     id_ = escape(m["id"])
@@ -143,7 +118,6 @@ def html_card(m):
       <button class="{classe_fav}" data-acao="favoritar" data-id="{id_}" data-nome="{nome}" data-artista="{artista}" data-capa="{capa}" data-audio="{audio}">{texto_fav}</button>
       <button class="{classe_down}" data-acao="baixar-musica" data-id="{id_}" data-nome="{nome}" data-artista="{artista}" data-capa="{capa}" data-audio="{audio}">{texto_down}</button>
     </article>"""
-
 
 def html_linha_favorito(m):
     id_ = escape(m["id"])
@@ -178,7 +152,6 @@ def html_linha_favorito(m):
       {botao_remover}
     </li>"""
 
-
 def html_linha_download(m):
     id_ = escape(m["id"])
     botao_remover = (
@@ -193,17 +166,14 @@ def html_linha_download(m):
       {botao_remover}
     </li>"""
 
-
 def html_linha_local(m):
     id_ = escape(m["id"])
-    capa_img = m["capa"] if m["capa"] else ""
     return f"""
     <li class="linha">
       <button class="play" data-acao="tocar-local" data-id="{id_}" title="Tocar">▶</button>
       <div class="tocando-capa" style="width:48px;height:48px;border-radius:9px;font-size:1.2rem;">📂</div>
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
     </li>"""
-
 
 def html_linha_album(m, index, total):
     id_ = escape(m["id"])
@@ -215,14 +185,12 @@ def html_linha_album(m, index, total):
       <button class="play" data-acao="tocar-album-index" data-index="{index}" title="Tocar">▶</button>
       <img src="{escape(m['capa'])}" alt="">
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
-      
       <div class="linha-acoes">
         <button class="icone pequeno" data-acao="mover-cima" data-index="{index}" title="Mover para cima" {desativar_cima}>▲</button>
         <button class="icone pequeno" data-acao="mover-baixo" data-index="{index}" title="Mover para baixo" {desativar_baixo}>▼</button>
         <button class="icone pequeno" data-acao="remover-do-album" data-id="{id_}" title="Tirar do álbum">✕</button>
       </div>
     </li>"""
-
 
 def html_card_album(nome, ids):
     capas = [favoritos[i]["capa"] for i in ids if i in favoritos]
@@ -241,10 +209,6 @@ def html_card_album(nome, ids):
       <span>{plural(len(ids), 'música', 'músicas')}</span>
     </button>"""
 
-
-# =============================================================================
-# 6. TELAS
-# =============================================================================
 def renderizar_favoritos():
     n = len(favoritos)
     cabecalho = f"""
@@ -264,7 +228,6 @@ def renderizar_favoritos():
           <button class="primario" data-acao="ir-busca">Buscar músicas</button>
         </div>"""
     TELAS["favoritos"].innerHTML = cabecalho + corpo
-
 
 def renderizar_downloads():
     n = len(downloads)
@@ -286,17 +249,17 @@ def renderizar_downloads():
         </div>"""
     TELAS["downloads"].innerHTML = cabecalho + corpo
 
-
 def renderizar_local():
-    lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
+    try:
+        lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
+    except Exception:
+        lista_local = []
     n = len(lista_local)
-    
     cabecalho = f"""
     <div class="tela-topo">
       <div><h1>Dispositivo</h1><p>{plural(n, 'arquivo de áudio encontrado', 'arquivos de áudio encontrados')}</p></div>
       <button class="primario" data-acao="escolher-pasta-dispositivo">📂 Abrir Pasta</button>
     </div>"""
-    
     if n > 0:
         corpo = '<ul class="lista">' + "".join(html_linha_local(m) for m in lista_local) + "</ul>"
     else:
@@ -308,7 +271,6 @@ def renderizar_local():
           <button class="primario" data-acao="escolher-pasta-dispositivo">📂 Abrir Pasta</button>
         </div>"""
     TELAS["local"].innerHTML = cabecalho + corpo
-
 
 def renderizar_albuns():
     albuns_sub.textContent = plural(len(albuns), "álbum", "álbuns")
@@ -322,14 +284,12 @@ def renderizar_albuns():
           <p>Digite um nome acima e clique em “Criar álbum”.</p>
         </div>"""
 
-
 def renderizar_album():
     if album_aberto not in albuns:
         return
     ids = albuns[album_aberto]
     musicas = [favoritos[i] for i in ids if i in favoritos]
     total = len(musicas)
-    
     if musicas:
         controles_topo = f"""
         <div class="album-controles">
@@ -346,7 +306,6 @@ def renderizar_album():
           <p>Vá em Favoritos e use o menu “＋ Álbum” nas músicas para adicioná-las aqui.</p>
           <button class="primario" data-acao="ir-favoritos">Ir para Favoritos</button>
         </div>"""
-        
     TELAS["album"].innerHTML = f"""
     <button class="voltar" data-acao="ir-albuns">← Álbuns</button>
     <div class="tela-topo">
@@ -355,14 +314,15 @@ def renderizar_album():
     </div>
     {corpo}"""
 
-
 def atualizar_contadores():
     menu_qtd_albuns.textContent = str(len(albuns))
     menu_qtd_favoritos.textContent = str(len(favoritos))
     menu_qtd_downloads.textContent = str(len(downloads))
-    lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
-    menu_qtd_local.textContent = str(len(lista_local))
-
+    try:
+        lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
+        menu_qtd_local.textContent = str(len(lista_local))
+    except Exception:
+        menu_qtd_local.textContent = "0"
 
 def mostrar_tela():
     for nome, secao in TELAS.items():
@@ -379,7 +339,6 @@ def mostrar_tela():
         renderizar_album()
     atualizar_contadores()
 
-
 def ir_para(nova_tela, album=None):
     global tela, album_aberto
     tela = nova_tela
@@ -388,10 +347,6 @@ def ir_para(nova_tela, album=None):
     mostrar_tela()
     area_rolagem.scrollTop = 0
 
-
-# =============================================================================
-# 7. AÇÕES
-# =============================================================================
 def avisar(texto):
     global timer_aviso
     toast.textContent = texto
@@ -400,24 +355,19 @@ def avisar(texto):
         window.clearTimeout(timer_aviso)
     timer_aviso = window.setTimeout(PROXY_ESCONDER_AVISO, 2000)
 
-
 def esconder_aviso():
     toast.classList.remove("mostra")
 
-
 PROXY_ESCONDER_AVISO = create_proxy(esconder_aviso)
-
 
 def abrir_menu_ou_fechar():
     abrindo = menu_popup.hidden
     menu_popup.hidden = not abrindo
     botao_menu.setAttribute("aria-expanded", "true" if abrindo else "false")
 
-
 def fechar_menu():
     menu_popup.hidden = True
     botao_menu.setAttribute("aria-expanded", "false")
-
 
 def atualizar_botoes_card(id_):
     botao_fav = document.querySelector(f'[data-acao="favoritar"][data-id="{id_}"]')
@@ -428,7 +378,6 @@ def atualizar_botoes_card(id_):
         else:
             botao_fav.className = "btn-salvar"
             botao_fav.textContent = "⭐ Salvar nos Favoritos"
-
     botao_down = document.querySelector(f'[data-acao="baixar-musica"][data-id="{id_}"]')
     if botao_down:
         if id_ in downloads:
@@ -438,7 +387,6 @@ def atualizar_botoes_card(id_):
             botao_down.className = "btn-salvar"
             botao_down.textContent = "⬇ Baixar"
 
-
 def obter_ou_criar_musica(alvo, id_):
     if id_ in downloads:
         return downloads[id_]
@@ -446,12 +394,10 @@ def obter_ou_criar_musica(alvo, id_):
         return favoritos[id_]
     if id_ in resultados_atuais:
         return resultados_atuais[id_]
-    
     nome = alvo.getAttribute("data-nome")
     artista = alvo.getAttribute("data-artista")
     capa = alvo.getAttribute("data-capa")
     audio = alvo.getAttribute("data-audio")
-    
     if nome and audio:
         return {
             "id": id_,
@@ -462,7 +408,6 @@ def obter_ou_criar_musica(alvo, id_):
             "audio_completo": audio,
         }
     return None
-
 
 def favoritar_ou_remover(id_, alvo):
     if id_ in favoritos:
@@ -481,7 +426,6 @@ def favoritar_ou_remover(id_, alvo):
     atualizar_botoes_card(id_)
     mostrar_tela()
 
-
 def baixar_musica(id_, alvo):
     if id_ in downloads:
         del downloads[id_]
@@ -492,18 +436,14 @@ def baixar_musica(id_, alvo):
         if musica:
             downloads[id_] = musica
             guardar("downloads", downloads)
-
             nome_arquivo = f"{musica['artista']} - {musica['nome']}"
             window.baixarArquivoNoAparelho(musica["audio"], nome_arquivo)
             avisar("Música baixada com sucesso!")
-
     atualizar_botoes_card(id_)
     mostrar_tela()
 
-
 def escolher_pasta_dispositivo():
     window.selecionarPastaDispositivo()
-
 
 def remover_download(id_):
     if id_ in downloads:
@@ -511,7 +451,6 @@ def remover_download(id_):
         guardar("downloads", downloads)
         avisar("Download removido")
         mostrar_tela()
-
 
 def tocar_musica_obj(musica, sem_limite=False):
     if not musica:
@@ -522,24 +461,23 @@ def tocar_musica_obj(musica, sem_limite=False):
     np_nome.textContent = musica["nome"]
     np_artista.textContent = musica["artista"]
 
-
 def tocar_favorito(id_):
     musica = favoritos.get(id_)
     tocar_musica_obj(musica, sem_limite=True)
-
 
 def tocar_download(id_):
     musica = downloads.get(id_)
     tocar_musica_obj(musica, sem_limite=True)
 
-
 def tocar_local(id_):
-    lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
+    try:
+        lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
+    except Exception:
+        lista_local = []
     for m in lista_local:
         if m["id"] == id_:
             tocar_musica_obj(m, sem_limite=True)
             break
-
 
 def tocar_album_por_indice(index):
     if album_aberto not in albuns:
@@ -548,7 +486,6 @@ def tocar_album_por_indice(index):
     musicas = [favoritos[i] for i in ids if i in favoritos]
     if 0 <= index < len(musicas):
         tocar_musica_obj(musicas[index], sem_limite=True)
-
 
 def mover_musica_album(index, direcao):
     if album_aberto not in albuns:
@@ -560,7 +497,6 @@ def mover_musica_album(index, direcao):
         guardar("albuns", albuns)
         renderizar_album()
 
-
 def adicionar_ao_album(nome, id_):
     ids = albuns.setdefault(nome, [])
     if id_ in ids:
@@ -570,7 +506,6 @@ def adicionar_ao_album(nome, id_):
     guardar("albuns", albuns)
     avisar(f"Adicionada a “{nome}”")
     mostrar_tela()
-
 
 def criar_album(evento):
     evento.preventDefault()
@@ -586,7 +521,6 @@ def criar_album(evento):
     avisar(f"Álbum “{nome}” criado")
     mostrar_tela()
 
-
 def excluir_album():
     if window.confirm(f"Excluir o álbum “{album_aberto}”? As músicas continuam nos favoritos."):
         albuns.pop(album_aberto, None)
@@ -594,11 +528,9 @@ def excluir_album():
         avisar("Álbum excluído")
         ir_para("albuns")
 
-
 def ao_enviar_busca(evento):
     evento.preventDefault()
     asyncio.ensure_future(executar_busca())
-
 
 async def executar_busca():
     global resultados_atuais
@@ -627,26 +559,20 @@ async def executar_busca():
     status.textContent = f"{len(musicas)} resultados para “{termo}”"
     grade.innerHTML = "".join(html_card(m) for m in musicas)
 
-
 def aplicar_tema(tema):
     document.documentElement.setAttribute("data-theme", tema)
     guardar("tema", tema)
 
-
 def alternar_tema(evento):
     atual = document.documentElement.getAttribute("data-theme")
     aplicar_tema("light" if atual == "dark" else "dark")
-
 
 def atualizar_tela_local_py():
     if tela == "local":
         renderizar_local()
     atualizar_contadores()
 
-
-# Registra função global para o JS chamar quando carregar a pasta
 window.atualizarTelaLocalPy = create_proxy(atualizar_tela_local_py)
-
 
 def ao_clicar(evento):
     if evento.target.closest(".menu-wrap") is None:
@@ -713,23 +639,19 @@ def ao_clicar(evento):
                 tocar_musica_obj(escolhida, sem_limite=True)
                 avisar("Reproduzindo música aleatória do álbum")
 
-
 def ao_mudar(evento):
     alvo = evento.target
     if alvo.getAttribute("data-acao") == "add-album" and alvo.value:
         adicionar_ao_album(alvo.value, alvo.getAttribute("data-id"))
-
 
 def pausar_outros(evento):
     for a in document.querySelectorAll("audio"):
         if not a.isSameNode(evento.target):
             a.pause()
 
-
 def ao_teclar(evento):
     if evento.key == "Escape":
         fechar_menu()
-
 
 form_busca.addEventListener("submit", create_proxy(ao_enviar_busca))
 form_album.addEventListener("submit", create_proxy(criar_album))
