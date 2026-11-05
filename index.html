@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SoundTrack Finder</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- PyScript: permite rodar Python no navegador -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css">
+  <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🎵 SoundTrack Finder</h1>
+    <button id="theme-btn" type="button">☀️ / 🌙</button>
+  </header>
+
+  <form id="search-form">
+    <input id="search-input" type="text" placeholder="Busque um artista ou música (ex: queen)" autocomplete="off">
+    <button id="search-btn" type="submit">Buscar</button>
+  </form>
+
+  <p id="status">Digite algo para começar.</p>
+  <main id="grid"></main>
+
+  <script type="py" src="./main.py" config="./pyscript.toml"></script>
+</body>
+</html>
