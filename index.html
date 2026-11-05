@@ -1,4 +1,39 @@
-<nav id="menu-popup" class="menu-popup" hidden>
+<!DOCTYPE html>
+<!--
+  SoundTrack Finder — ESTRUTURA DA PÁGINA (HTML)
+  ------------------------------------------------
+  Este arquivo define a estrutura visual da aplicação.
+-->
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SoundTrack Finder</title>
+
+  <!-- Fonte Inter (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Visual da página -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- PyScript: ferramenta que permite rodar Python dentro do navegador -->
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css">
+  <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ================= TOPO ================= -->
+    <header class="topbar">
+
+      <!-- Botão ☰ (canto superior esquerdo) + pop-up com as opções -->
+      <div class="menu-wrap">
+        <button id="menu-btn" class="icone" data-acao="menu" type="button"
+                aria-label="Abrir menu" aria-expanded="false">☰</button>
+
+        <nav id="menu-popup" class="menu-popup" hidden>
           <button class="menu-opcao" data-acao="ir-albuns" type="button">
             <span class="menu-icone">💿</span>
             <span class="menu-texto"><strong>Álbuns</strong><small>Suas playlists</small></span>
@@ -15,4 +50,77 @@
             <span class="menu-qtd" id="menu-qtd-downloads">0</span>
           </button>
         </nav>
-        
+      </div>
+
+      <!-- Clicar na marca volta para a busca -->
+      <button class="marca" data-acao="ir-busca" type="button">
+        <span class="marca-logo">♪</span>
+        <span class="marca-nome">SoundTrack</span>
+      </button>
+
+      <!-- Barra de busca (Enter ou botão "Buscar") -->
+      <form id="search-form">
+        <input id="search-input" type="text" placeholder="Busque um artista ou música…" autocomplete="off">
+        <button id="search-btn" type="submit">Buscar</button>
+      </form>
+
+      <!-- Alterna modo escuro / claro -->
+      <button id="theme-btn" class="icone" type="button" title="Trocar tema">🌓</button>
+    </header>
+
+    <!-- ================= TELAS ================= -->
+    <div class="scroll" id="scroll">
+
+      <!-- TELA 1: Busca -->
+      <section id="tela-busca">
+        <p id="status">Digite algo para começar.</p>
+        <main id="grid"></main>
+      </section>
+
+      <!-- TELA 2: Favoritos (conteúdo escrito pelo main.py) -->
+      <section id="tela-favoritos" hidden></section>
+
+      <!-- TELA 3: Downloads (conteúdo escrito pelo main.py) -->
+      <section id="tela-downloads" hidden></section>
+
+      <!-- TELA 4: Lista de álbuns -->
+      <section id="tela-albuns" hidden>
+        <div class="tela-topo">
+          <div>
+            <h1>Álbuns</h1>
+            <p id="albuns-sub">0 álbuns</p>
+          </div>
+        </div>
+
+        <form id="album-form" class="album-form">
+          <input id="album-input" type="text" placeholder="Nome do novo álbum…" maxlength="40" autocomplete="off">
+          <button type="submit">＋ Criar álbum</button>
+        </form>
+
+        <div id="albuns-grid" class="albuns-grid"></div>
+      </section>
+
+      <!-- TELA 5: Um álbum aberto (conteúdo escrito pelo main.py) -->
+      <section id="tela-album" hidden></section>
+    </div>
+
+    <!-- ================= PLAYER FIXO ================= -->
+    <footer class="player-bar">
+      <div class="tocando">
+        <div class="tocando-capa" id="np-capa">♪</div>
+        <div class="tocando-info">
+          <strong id="np-nome">Nada tocando</strong>
+          <span id="np-artista">Escolha uma música para ouvir</span>
+        </div>
+      </div>
+      <audio id="player" controls preload="none"></audio>
+    </footer>
+
+    <!-- Aviso rápido (aparece por 2 segundos) -->
+    <div id="toast" class="toast" role="status"></div>
+  </div>
+
+  <!-- Aqui o Python é carregado -->
+  <script type="py" src="./main.py" config="./pyscript.toml"></script>
+</body>
+</html>
