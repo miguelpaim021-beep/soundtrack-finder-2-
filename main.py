@@ -136,7 +136,7 @@ def html_linha_favorito(m):
     titulo_baixar = "Baixado" if baixada else "Baixar música"
     classe_baixar = "icone pequeno ativo" if baixada else "icone pequeno"
     
-    # Exibe apenas o ícone sem texto quebrado
+    # Apenas o ícone compacto, sem texto ao lado
     icone_texto = "✓" if baixada else "⬇"
     btn_baixar = f'<button class="{classe_baixar}" data-acao="baixar-musica" data-id="{id_}" data-nome="{escape(m["nome"])}" data-artista="{escape(m["artista"])}" data-capa="{escape(m["capa"])}" data-audio="{escape(m["audio"])}" title="{titulo_baixar}">{icone_texto}</button>'
 
@@ -669,4 +669,3 @@ if tema_salvo:
     document.documentElement.setAttribute("data-theme", tema_salvo)
 
 mostrar_tela()
-    
