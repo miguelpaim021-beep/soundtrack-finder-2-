@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <!--
   SoundTrack Finder — ESTRUTURA DA PÁGINA (HTML)
-  ------------------------------------------------
-  Este arquivo define a estrutura visual da aplicação.
 -->
 <html lang="pt-BR" data-theme="dark">
 <head>
@@ -124,27 +122,20 @@
       <audio id="player" controls preload="none"></audio>
     </footer>
 
-    <!-- Aviso rápido (aparece por 2 segundos) -->
+    <!-- Aviso rápido -->
     <div id="toast" class="toast" role="status"></div>
   </div>
 
-  <!-- Funções auxiliares do Navegador (Downloads e Leitura de Pasta Local) -->
+  <!-- Funções de integração com o aparelho -->
   <script>
     let pastaHandleGlobal = null;
     let localMusicas = [];
 
-    async function selecionarPastaDownloads() {
-      try {
-        pastaHandleGlobal = await window.showDirectoryPicker();
-        alert("Pasta de downloads selecionada com sucesso!");
-        return true;
-      } catch (err) {
-        console.log("Seleção de pasta cancelada.");
-        return false;
-      }
-    }
-
     async function selecionarPastaDispositivo() {
+      if (!window.showDirectoryPicker) {
+        alert("Seu navegador não suporta a abertura de pastas locais.");
+        return;
+      }
       try {
         const dirHandle = await window.showDirectoryPicker();
         localMusicas = [];
@@ -171,18 +162,23 @@
           window.atualizarTelaLocalPy();
         }
       } catch (err) {
-        console.log("Seleção de pasta cancelada ou não suportada.", err);
+        console.log("Seleção de pasta cancelada ou erro.", err);
       }
     }
 
     async function baixarArquivoNoAparelho(url, nomeArquivo) {
       const nomeFormatado = nomeArquivo.endsWith(".m4a") ? nomeArquivo : nomeArquivo + ".m4a";
-      
-      if (pastaHandleGlobal) {
-        try {
-          const fileHandle = await pastaHandleGlobal.getFileHandle(nomeFormatado, { create: true });
-          const writable = await fileHandle.createWritable();
-          const response = await fetch(url);
-          const blob = await response.blob();
-          await writable.write(blob);
-          await writable.close();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nomeFormatado;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  </script>
+
+  <!-- Python carregado via PyScript -->
+  <script type="py" src="./main.py" config="./pyscript.toml"></script>
+</body>
+</html>
