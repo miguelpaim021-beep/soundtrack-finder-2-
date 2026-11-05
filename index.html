@@ -123,6 +123,9 @@
 
       <!-- TELA 4: Um álbum aberto (conteúdo escrito pelo main.py) -->
       <section id="tela-album" hidden></section>
+      
+      <!-- TELA: Dispositivo (músicas locais da pasta) -->
+      <section id="tela-local" hidden></section>
     </div>
 
     <!-- ================= PLAYER FIXO ================= -->
@@ -147,47 +150,40 @@
   <!-- Aqui o Python é carregado -->
   <script type="py" src="./main.py" config="./pyscript.toml"></script>
   <script>
-  // Variável para armazenar a pasta escolhida pelo usuário
-  let pastaHandleGlobal = null;
+  <script>
+  // Armazena as músicas locais carregadas da pasta do dispositivo
+  let localMusicas = [];
 
-  async function selecionarPastaDownloads() {
+  async function selecionarPastaDispositivo() {
     try {
-      pastaHandleGlobal = await window.showDirectoryPicker();
-      alert("Pasta de downloads selecionada com sucesso!");
-      return true;
-    } catch (err) {
-      console.log("Seleção de pasta cancelada.");
-      return false;
-    }
-  }
-
-  async function baixarArquivoNoAparelho(url, nomeArquivo) {
-    const nomeFormatado = nomeArquivo.endsWith(".m4a") ? nomeArquivo : nomeArquivo + ".m4a";
-    
-    // Se o usuário escolheu uma pasta personalizada, tenta salvar nela
-    if (pastaHandleGlobal) {
-      try {
-        const fileHandle = await pastaHandleGlobal.getFileHandle(nomeFormatado, { create: true });
-        const writable = await fileHandle.createWritable();
-        const response = await fetch(url);
-        const blob = await response.blob();
-        await writable.write(blob);
-        await writable.close();
-        alert("Música salva na pasta escolhida com sucesso!");
-        return;
-      } catch (err) {
-        console.log("Erro ao salvar na pasta personalizada, usando download padrão.");
+      const dirHandle = await window.showDirectoryPicker();
+      localMusicas = [];
+      
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file') {
+          const file = await entry.getFile();
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (['mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac'].includes(ext)) {
+            const audioUrl = URL.createObjectURL(file);
+            localMusicas.push({
+              id: 'local_' + file.name,
+              nome: file.name.replace(/\.[^/.]+$/, ""),
+              artista: "Pasta Local",
+              capa: "",
+              audio: audioUrl
+            });
+          }
+        }
       }
+      alert(`${localMusicas.length} músicas de áudio encontradas na pasta!`);
+      
+      // Atualiza a tela no Python se a função estiver registrada
+      if (window.atualizarTelaLocalPy) {
+        window.atualizarTelaLocalPy();
+      }
+    } catch (err) {
+      console.log("Seleção de pasta cancelada ou não suportada pelo navegador.", err);
     }
-
-    // Download padrão do navegador (vai direto para a pasta Downloads do aparelho)
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nomeFormatado;
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   }
 </script>
 </body>
