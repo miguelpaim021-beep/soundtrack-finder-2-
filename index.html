@@ -1,7 +1,4 @@
 <!DOCTYPE html>
-<!--
-  SoundTrack Finder — ESTRUTURA DA PÁGINA (HTML)
--->
 <html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -16,7 +13,7 @@
   <!-- Visual da página -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- PyScript: ferramenta que permite rodar Python dentro do navegador -->
+  <!-- PyScript -->
   <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css">
   <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
 </head>
@@ -26,7 +23,6 @@
     <!-- ================= TOPO ================= -->
     <header class="topbar">
 
-      <!-- Botão ☰ (canto superior esquerdo) + pop-up com as opções -->
       <div class="menu-wrap">
         <button id="menu-btn" class="icone" data-acao="menu" type="button"
                 aria-label="Abrir menu" aria-expanded="false">☰</button>
@@ -55,41 +51,31 @@
         </nav>
       </div>
 
-      <!-- Clicar na marca volta para a busca -->
       <button class="marca" data-acao="ir-busca" type="button">
         <span class="marca-logo">♪</span>
         <span class="marca-nome">SoundTrack</span>
       </button>
 
-      <!-- Barra de busca (Enter ou botão "Buscar") -->
       <form id="search-form">
         <input id="search-input" type="text" placeholder="Busque um artista ou música…" autocomplete="off">
         <button id="search-btn" type="submit">Buscar</button>
       </form>
 
-      <!-- Alterna modo escuro / claro -->
       <button id="theme-btn" class="icone" type="button" title="Trocar tema">🌓</button>
     </header>
 
     <!-- ================= TELAS ================= -->
     <div class="scroll" id="scroll">
 
-      <!-- TELA 1: Busca -->
       <section id="tela-busca">
         <p id="status">Digite algo para começar.</p>
         <main id="grid"></main>
       </section>
 
-      <!-- TELA 2: Favoritos -->
       <section id="tela-favoritos" hidden></section>
-
-      <!-- TELA 3: Downloads -->
       <section id="tela-downloads" hidden></section>
-
-      <!-- TELA 4: Dispositivo (Local) -->
       <section id="tela-local" hidden></section>
 
-      <!-- TELA 5: Lista de álbuns -->
       <section id="tela-albuns" hidden>
         <div class="tela-topo">
           <div>
@@ -106,7 +92,6 @@
         <div id="albuns-grid" class="albuns-grid"></div>
       </section>
 
-      <!-- TELA 6: Um álbum aberto -->
       <section id="tela-album" hidden></section>
     </div>
 
@@ -122,11 +107,9 @@
       <audio id="player" controls preload="none"></audio>
     </footer>
 
-    <!-- Aviso rápido -->
     <div id="toast" class="toast" role="status"></div>
   </div>
 
-  <!-- Funções de integração com o aparelho -->
   <script>
     let pastaHandleGlobal = null;
     let localMusicas = [];
@@ -178,7 +161,6 @@
     }
   </script>
 
-  <!-- Python carregado via PyScript -->
   <script type="py" src="./main.py" config="./pyscript.toml"></script>
 </body>
 </html>
