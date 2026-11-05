@@ -412,6 +412,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   color: var(--text);
   font-size: 0.85rem;
 }
+
 /* ---------- ESTILOS PARA ALBUNS E REORDENAÇÃO ---------- */
 .album-controles {
   display: flex;
