@@ -48,6 +48,9 @@ np_capa = document.querySelector("#np-capa")
 np_nome = document.querySelector("#np-nome")
 np_artista = document.querySelector("#np-artista")
 toast = document.querySelector("#toast")
+lang_btn = document.querySelector("#lang-btn")
+lang_popup = document.querySelector("#lang-popup")
+lang_atual = document.querySelector("#lang-atual")
 
 def carregar(chave, padrao):
     try:
@@ -61,6 +64,252 @@ def guardar(chave, valor):
         window.localStorage.setItem(chave, json.dumps(valor))
     except Exception:
         pass
+
+
+# =============================================================================
+# IDIOMAS (Português / English / Español)
+# =============================================================================
+# Todo texto visível fica neste dicionário. Para traduzir algo novo, adicione a
+# mesma chave nos 3 idiomas e use t("chave") no código (ou data-i18n="chave" no HTML).
+TRADUCOES = {
+    "pt": {
+        "menu_aria": "Abrir menu",
+        "menu_albuns": "Álbuns", "menu_albuns_sub": "Suas playlists",
+        "menu_favoritos": "Favoritos", "menu_favoritos_sub": "Músicas favoritas",
+        "menu_downloads": "Downloads", "menu_downloads_sub": "Músicas baixadas",
+        "menu_local": "Dispositivo", "menu_local_sub": "Músicas locais",
+        "buscar_placeholder": "Busque um artista ou música…", "buscar_btn": "Buscar",
+        "tema_titulo": "Alternar tema", "idioma_titulo": "Idioma",
+        "album_novo_placeholder": "Nome do novo álbum…", "criar_album_btn": "＋ Criar álbum",
+        "np_nome_vazio": "Nada tocando", "np_artista_vazio": "Escolha uma música para ouvir",
+        "status_inicial": "Digite algo para começar.",
+        "status_digite": "Digite o nome de um artista ou música.",
+        "status_buscando": "Buscando músicas…",
+        "status_erro": "Erro ao buscar. Verifique sua internet e tente de novo.",
+        "status_vazio": "Não encontramos resultados.",
+        "status_resultados": "{n} resultados para “{termo}”",
+        "capa": "Capa",
+        "fav_on": "✓ Salva nos Favoritos", "fav_off": "⭐ Salvar nos Favoritos",
+        "down_on": "✓ Baixado", "down_off": "⬇ Baixar",
+        "down_title_on": "Baixado", "down_title_off": "Baixar música",
+        "add_album": "＋ Álbum", "add_album_title": "Adicionar a um álbum",
+        "criar_album_link": "Criar álbum",
+        "remove_fav_title": "Remover dos favoritos", "remove_down_title": "Excluir download",
+        "remove_album_title": "Tirar do álbum", "play_title": "Tocar",
+        "move_up": "Mover para cima", "move_down": "Mover para baixo",
+        "buscar_musicas": "Buscar músicas", "abrir_pasta": "📂 Abrir Pasta",
+        "fav_vazio_titulo": "Nenhum favorito ainda",
+        "fav_vazio_texto": "Busque uma música e toque em “Salvar nos Favoritos”.",
+        "down_vazio_titulo": "Nenhum download realizado",
+        "down_vazio_texto": "Vá em Favoritos ou na Busca e clique em “Baixar” nas músicas desejadas.",
+        "local_vazio_titulo": "Nenhuma pasta aberta",
+        "local_vazio_texto": "Clique no botão acima para selecionar uma pasta do seu dispositivo com músicas.",
+        "albuns_vazio_titulo": "Nenhum álbum ainda",
+        "albuns_vazio_texto": "Digite um nome acima e clique em “Criar álbum”.",
+        "album_vazio_titulo": "Álbum vazio",
+        "album_vazio_texto": "Vá em Favoritos e use o menu “＋ Álbum” nas músicas para adicioná-las aqui.",
+        "ir_favoritos": "Ir para Favoritos", "voltar_albuns": "← Álbuns",
+        "tocar_ordem": "▶ Tocar em Ordem", "tocar_aleatorio": "Tocar Aleatório",
+        "excluir_album": "Excluir álbum",
+        "toast_fav_off": "Removida dos favoritos", "toast_fav_on": "Salva nos Favoritos",
+        "toast_down_off": "Download removido", "toast_down_on": "Música baixada com sucesso!",
+        "toast_ja_no_album": "Já está em “{nome}”", "toast_add_album": "Adicionada a “{nome}”",
+        "toast_album_existe": "Já existe um álbum com esse nome",
+        "toast_album_criado": "Álbum “{nome}” criado", "toast_album_excluido": "Álbum excluído",
+        "confirm_excluir": "Excluir o álbum “{nome}”? As músicas continuam nos favoritos.",
+        "alerta_sem_suporte": "Seu navegador não suporta a abertura de pastas locais.",
+        "alerta_encontradas": "{n} músicas de áudio encontradas na pasta!",
+        "pasta_local": "Pasta Local",
+    },
+    "en": {
+        "menu_aria": "Open menu",
+        "menu_albuns": "Albums", "menu_albuns_sub": "Your playlists",
+        "menu_favoritos": "Favorites", "menu_favoritos_sub": "Favorite songs",
+        "menu_downloads": "Downloads", "menu_downloads_sub": "Downloaded songs",
+        "menu_local": "Device", "menu_local_sub": "Local music",
+        "buscar_placeholder": "Search for an artist or song…", "buscar_btn": "Search",
+        "tema_titulo": "Toggle theme", "idioma_titulo": "Language",
+        "album_novo_placeholder": "New album name…", "criar_album_btn": "＋ Create album",
+        "np_nome_vazio": "Nothing playing", "np_artista_vazio": "Pick a song to listen to",
+        "status_inicial": "Type something to get started.",
+        "status_digite": "Type the name of an artist or song.",
+        "status_buscando": "Searching for songs…",
+        "status_erro": "Search failed. Check your internet connection and try again.",
+        "status_vazio": "No results found.",
+        "status_resultados": "{n} results for “{termo}”",
+        "capa": "Cover",
+        "fav_on": "✓ Saved to Favorites", "fav_off": "⭐ Save to Favorites",
+        "down_on": "✓ Downloaded", "down_off": "⬇ Download",
+        "down_title_on": "Downloaded", "down_title_off": "Download song",
+        "add_album": "＋ Album", "add_album_title": "Add to an album",
+        "criar_album_link": "Create album",
+        "remove_fav_title": "Remove from favorites", "remove_down_title": "Delete download",
+        "remove_album_title": "Remove from album", "play_title": "Play",
+        "move_up": "Move up", "move_down": "Move down",
+        "buscar_musicas": "Search songs", "abrir_pasta": "📂 Open Folder",
+        "fav_vazio_titulo": "No favorites yet",
+        "fav_vazio_texto": "Search for a song and tap “Save to Favorites”.",
+        "down_vazio_titulo": "No downloads yet",
+        "down_vazio_texto": "Go to Favorites or Search and click “Download” on the songs you want.",
+        "local_vazio_titulo": "No folder open",
+        "local_vazio_texto": "Click the button above to select a folder on your device with music.",
+        "albuns_vazio_titulo": "No albums yet",
+        "albuns_vazio_texto": "Type a name above and click “Create album”.",
+        "album_vazio_titulo": "Empty album",
+        "album_vazio_texto": "Go to Favorites and use the “＋ Album” menu on songs to add them here.",
+        "ir_favoritos": "Go to Favorites", "voltar_albuns": "← Albums",
+        "tocar_ordem": "▶ Play in Order", "tocar_aleatorio": "Shuffle",
+        "excluir_album": "Delete album",
+        "toast_fav_off": "Removed from favorites", "toast_fav_on": "Saved to Favorites",
+        "toast_down_off": "Download removed", "toast_down_on": "Song downloaded successfully!",
+        "toast_ja_no_album": "Already in “{nome}”", "toast_add_album": "Added to “{nome}”",
+        "toast_album_existe": "An album with that name already exists",
+        "toast_album_criado": "Album “{nome}” created", "toast_album_excluido": "Album deleted",
+        "confirm_excluir": "Delete the album “{nome}”? The songs stay in your favorites.",
+        "alerta_sem_suporte": "Your browser does not support opening local folders.",
+        "alerta_encontradas": "{n} audio files found in the folder!",
+        "pasta_local": "Local Folder",
+    },
+    "es": {
+        "menu_aria": "Abrir menú",
+        "menu_albuns": "Álbumes", "menu_albuns_sub": "Tus playlists",
+        "menu_favoritos": "Favoritos", "menu_favoritos_sub": "Canciones favoritas",
+        "menu_downloads": "Descargas", "menu_downloads_sub": "Canciones descargadas",
+        "menu_local": "Dispositivo", "menu_local_sub": "Música local",
+        "buscar_placeholder": "Busca un artista o canción…", "buscar_btn": "Buscar",
+        "tema_titulo": "Cambiar tema", "idioma_titulo": "Idioma",
+        "album_novo_placeholder": "Nombre del nuevo álbum…", "criar_album_btn": "＋ Crear álbum",
+        "np_nome_vazio": "Nada en reproducción", "np_artista_vazio": "Elige una canción para escuchar",
+        "status_inicial": "Escribe algo para empezar.",
+        "status_digite": "Escribe el nombre de un artista o canción.",
+        "status_buscando": "Buscando canciones…",
+        "status_erro": "Error al buscar. Revisa tu conexión a internet e inténtalo de nuevo.",
+        "status_vazio": "No encontramos resultados.",
+        "status_resultados": "{n} resultados para “{termo}”",
+        "capa": "Portada",
+        "fav_on": "✓ Guardada en Favoritos", "fav_off": "⭐ Guardar en Favoritos",
+        "down_on": "✓ Descargada", "down_off": "⬇ Descargar",
+        "down_title_on": "Descargada", "down_title_off": "Descargar canción",
+        "add_album": "＋ Álbum", "add_album_title": "Añadir a un álbum",
+        "criar_album_link": "Crear álbum",
+        "remove_fav_title": "Quitar de favoritos", "remove_down_title": "Eliminar descarga",
+        "remove_album_title": "Quitar del álbum", "play_title": "Reproducir",
+        "move_up": "Subir", "move_down": "Bajar",
+        "buscar_musicas": "Buscar canciones", "abrir_pasta": "📂 Abrir carpeta",
+        "fav_vazio_titulo": "Aún no hay favoritos",
+        "fav_vazio_texto": "Busca una canción y pulsa “Guardar en Favoritos”.",
+        "down_vazio_titulo": "Aún no hay descargas",
+        "down_vazio_texto": "Ve a Favoritos o a Buscar y pulsa “Descargar” en las canciones que quieras.",
+        "local_vazio_titulo": "Ninguna carpeta abierta",
+        "local_vazio_texto": "Pulsa el botón de arriba para elegir una carpeta de tu dispositivo con música.",
+        "albuns_vazio_titulo": "Aún no hay álbumes",
+        "albuns_vazio_texto": "Escribe un nombre arriba y pulsa “Crear álbum”.",
+        "album_vazio_titulo": "Álbum vacío",
+        "album_vazio_texto": "Ve a Favoritos y usa el menú “＋ Álbum” en las canciones para añadirlas aquí.",
+        "ir_favoritos": "Ir a Favoritos", "voltar_albuns": "← Álbumes",
+        "tocar_ordem": "▶ Reproducir en orden", "tocar_aleatorio": "Aleatorio",
+        "excluir_album": "Eliminar álbum",
+        "toast_fav_off": "Quitada de favoritos", "toast_fav_on": "Guardada en Favoritos",
+        "toast_down_off": "Descarga eliminada", "toast_down_on": "¡Canción descargada con éxito!",
+        "toast_ja_no_album": "Ya está en “{nome}”", "toast_add_album": "Añadida a “{nome}”",
+        "toast_album_existe": "Ya existe un álbum con ese nombre",
+        "toast_album_criado": "Álbum “{nome}” creado", "toast_album_excluido": "Álbum eliminado",
+        "confirm_excluir": "¿Eliminar el álbum “{nome}”? Las canciones siguen en favoritos.",
+        "alerta_sem_suporte": "Tu navegador no permite abrir carpetas locales.",
+        "alerta_encontradas": "¡{n} archivos de audio encontrados en la carpeta!",
+        "pasta_local": "Carpeta local",
+    },
+}
+
+# Palavras no singular/plural (usadas por plural()).
+PLURAIS = {
+    "pt": {"musica": ("música", "músicas"), "musica_favorita": ("música favorita", "músicas favoritas"),
+           "musica_baixada": ("música baixada", "músicas baixadas"),
+           "arquivo": ("arquivo de áudio encontrado", "arquivos de áudio encontrados"),
+           "album": ("álbum", "álbuns")},
+    "en": {"musica": ("song", "songs"), "musica_favorita": ("favorite song", "favorite songs"),
+           "musica_baixada": ("downloaded song", "downloaded songs"),
+           "arquivo": ("audio file found", "audio files found"),
+           "album": ("album", "albums")},
+    "es": {"musica": ("canción", "canciones"), "musica_favorita": ("canción favorita", "canciones favoritas"),
+           "musica_baixada": ("canción descargada", "canciones descargadas"),
+           "arquivo": ("archivo de audio encontrado", "archivos de audio encontrados"),
+           "album": ("álbum", "álbumes")},
+}
+
+CODIGOS_HTML = {"pt": "pt-BR", "en": "en", "es": "es"}   # valor do atributo lang do <html>
+
+idioma = "pt"                  # idioma atual
+status_chave = "status_inicial"  # mensagem atual da busca (para retraduzir ao trocar de idioma)
+status_kw = {}
+
+
+def t(chave, **kw):
+    """Devolve o texto `chave` no idioma atual (ou em português, se faltar)."""
+    texto = TRADUCOES.get(idioma, {}).get(chave) or TRADUCOES["pt"][chave]
+    return texto.format(**kw) if kw else texto
+
+
+def plural(n, chave):
+    """Devolve '1 música' / '3 músicas' (ou 'song/songs', 'canción/canciones')."""
+    singular, plural_ = PLURAIS[idioma][chave]
+    return f"{n} {singular if n == 1 else plural_}"
+
+
+def definir_status(chave, **kw):
+    """Mostra uma mensagem de estado da busca e lembra qual é, para retraduzir depois."""
+    global status_chave, status_kw
+    status_chave, status_kw = chave, kw
+    status.textContent = t(chave, **kw)
+
+
+def traduzir_js(chave, n=None):
+    """Permite ao JavaScript (index.html) pedir textos traduzidos."""
+    return t(chave, n=n)
+
+
+def abrir_idioma_ou_fechar():
+    abrindo = lang_popup.hidden
+    lang_popup.hidden = not abrindo
+    lang_btn.setAttribute("aria-expanded", "true" if abrindo else "false")
+
+
+def fechar_idioma():
+    lang_popup.hidden = True
+    lang_btn.setAttribute("aria-expanded", "false")
+
+
+def aplicar_idioma(codigo):
+    """Troca o idioma do site inteiro e lembra a escolha."""
+    global idioma
+    idioma = codigo if codigo in TRADUCOES else "pt"
+    guardar("idioma", idioma)
+    document.documentElement.setAttribute("lang", CODIGOS_HTML[idioma])
+
+    # Textos fixos do HTML, marcados com data-i18n*
+    for el in document.querySelectorAll("[data-i18n]"):
+        el.textContent = t(el.getAttribute("data-i18n"))
+    for el in document.querySelectorAll("[data-i18n-placeholder]"):
+        el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")))
+    for el in document.querySelectorAll("[data-i18n-title]"):
+        el.setAttribute("title", t(el.getAttribute("data-i18n-title")))
+    for el in document.querySelectorAll("[data-i18n-aria]"):
+        el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")))
+
+    # Botão do idioma e opção marcada no pop-up
+    lang_atual.textContent = idioma.upper()
+    for op in document.querySelectorAll("[data-idioma]"):
+        if op.getAttribute("data-idioma") == idioma:
+            op.classList.add("ativo")
+        else:
+            op.classList.remove("ativo")
+
+    # Textos dinâmicos: mensagem da busca, botões dos cards e a tela aberta
+    status.textContent = t(status_chave, **status_kw)
+    for id_ in list(resultados_atuais):
+        atualizar_botoes_card(id_)
+    mostrar_tela()
+
 
 favoritos = carregar("favoritos", {})
 downloads = carregar("downloads", {})
@@ -91,8 +340,6 @@ def simplificar(m):
         "audio_completo": preview,
     }
 
-def plural(n, singular, plural_):
-    return f"{n} {singular if n == 1 else plural_}"
 
 def html_card(m):
     id_ = escape(m["id"])
@@ -103,15 +350,15 @@ def html_card(m):
 
     salva = id_ in favoritos
     classe_fav = "btn-salvar ativo" if salva else "btn-salvar"
-    texto_fav = "✓ Salva nos Favoritos" if salva else "⭐ Salvar nos Favoritos"
+    texto_fav = t("fav_on") if salva else t("fav_off")
 
     baixada = id_ in downloads
     classe_down = "btn-salvar ativo" if baixada else "btn-salvar"
-    texto_down = "✓ Baixado" if baixada else "⬇ Baixar"
+    texto_down = t("down_on") if baixada else t("down_off")
 
     return f"""
     <article class="card">
-      <div class="capa"><img src="{capa}" alt="Capa" loading="lazy"></div>
+      <div class="capa"><img src="{capa}" alt="{t('capa')}" loading="lazy"></div>
       <h3 title="{nome}">{nome}</h3>
       <p>{artista}</p>
       <audio controls preload="none" src="{audio}"></audio>
@@ -126,14 +373,14 @@ def html_linha_favorito(m):
             f'<option value="{escape(nome)}">{escape(nome)}</option>' for nome in albuns
         )
         extra = (
-            f'<select data-acao="add-album" data-id="{id_}" title="Adicionar a um álbum">'
-            f'<option value="">＋ Álbum</option>{opcoes}</select>'
+            f'<select data-acao="add-album" data-id="{id_}" title="{t("add_album_title")}">'
+            f'<option value="">{t("add_album")}</option>{opcoes}</select>'
         )
     else:
-        extra = '<button class="link" data-acao="ir-albuns">Criar álbum</button>'
+        extra = f'<button class="link" data-acao="ir-albuns">{t("criar_album_link")}</button>'
 
     baixada = id_ in downloads
-    titulo_baixar = "Baixado" if baixada else "Baixar música"
+    titulo_baixar = t("down_title_on") if baixada else t("down_title_off")
     classe_baixar = "icone pequeno ativo" if baixada else "icone pequeno"
     
     # Apenas o ícone compacto, sem texto ao lado
@@ -142,12 +389,12 @@ def html_linha_favorito(m):
 
     botao_remover = (
         f'<button class="icone pequeno" data-acao="remover-favorito" data-id="{id_}" '
-        f'title="Remover dos favoritos">✕</button>'
+        f'title="{t("remove_fav_title")}">✕</button>'
     )
 
     return f"""
     <li class="linha">
-      <button class="play" data-acao="tocar-favorito" data-id="{id_}" title="Tocar">▶</button>
+      <button class="play" data-acao="tocar-favorito" data-id="{id_}" title="{t('play_title')}">▶</button>
       <img src="{escape(m['capa'])}" alt="">
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
       {extra}
@@ -159,11 +406,11 @@ def html_linha_download(m):
     id_ = escape(m["id"])
     botao_remover = (
         f'<button class="icone pequeno" data-acao="remover-download" data-id="{id_}" '
-        f'title="Excluir download">✕</button>'
+        f'title="{t("remove_down_title")}">✕</button>'
     )
     return f"""
     <li class="linha">
-      <button class="play" data-acao="tocar-download" data-id="{id_}" title="Tocar">▶</button>
+      <button class="play" data-acao="tocar-download" data-id="{id_}" title="{t('play_title')}">▶</button>
       <img src="{escape(m['capa'])}" alt="">
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
       {botao_remover}
@@ -173,7 +420,7 @@ def html_linha_local(m):
     id_ = escape(m["id"])
     return f"""
     <li class="linha">
-      <button class="play" data-acao="tocar-local" data-id="{id_}" title="Tocar">▶</button>
+      <button class="play" data-acao="tocar-local" data-id="{id_}" title="{t('play_title')}">▶</button>
       <div class="tocando-capa" style="width:48px;height:48px;border-radius:9px;font-size:1.2rem;">📂</div>
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
     </li>"""
@@ -185,13 +432,13 @@ def html_linha_album(m, index, total):
 
     return f"""
     <li class="linha" data-id="{id_}">
-      <button class="play" data-acao="tocar-album-index" data-index="{index}" title="Tocar">▶</button>
+      <button class="play" data-acao="tocar-album-index" data-index="{index}" title="{t('play_title')}">▶</button>
       <img src="{escape(m['capa'])}" alt="">
       <div class="info"><strong>{escape(m['nome'])}</strong><span>{escape(m['artista'])}</span></div>
       <div class="linha-acoes">
-        <button class="icone pequeno" data-acao="mover-cima" data-index="{index}" title="Mover para cima" {desativar_cima}>▲</button>
-        <button class="icone pequeno" data-acao="mover-baixo" data-index="{index}" title="Mover para baixo" {desativar_baixo}>▼</button>
-        <button class="icone pequeno" data-acao="remover-do-album" data-id="{id_}" title="Tirar do álbum">✕</button>
+        <button class="icone pequeno" data-acao="mover-cima" data-index="{index}" title="{t('move_up')}" {desativar_cima}>▲</button>
+        <button class="icone pequeno" data-acao="mover-baixo" data-index="{index}" title="{t('move_down')}" {desativar_baixo}>▼</button>
+        <button class="icone pequeno" data-acao="remover-do-album" data-id="{id_}" title="{t('remove_album_title')}">✕</button>
       </div>
     </li>"""
 
@@ -209,26 +456,26 @@ def html_card_album(nome, ids):
     <button class="album-card" data-acao="abrir-album" data-nome="{escape(nome)}">
       <div class="album-capa">{arte}</div>
       <strong>{escape(nome)}</strong>
-      <span>{plural(len(ids), 'música', 'músicas')}</span>
+      <span>{plural(len(ids), 'musica')}</span>
     </button>"""
 
 def renderizar_favoritos():
     n = len(favoritos)
     cabecalho = f"""
     <div class="tela-topo">
-      <div><h1>Favoritos</h1><p>{plural(n, 'música favorita', 'músicas favoritas')}</p></div>
+      <div><h1>{t('menu_favoritos')}</h1><p>{plural(n, 'musica_favorita')}</p></div>
     </div>"""
     if favoritos:
         corpo = '<ul class="lista">' + "".join(
             html_linha_favorito(m) for m in favoritos.values()
         ) + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">⭐</div>
-          <h2>Nenhum favorito ainda</h2>
-          <p>Busque uma música e toque em “Salvar nos Favoritos”.</p>
-          <button class="primario" data-acao="ir-busca">Buscar músicas</button>
+          <h2>{t('fav_vazio_titulo')}</h2>
+          <p>{t('fav_vazio_texto')}</p>
+          <button class="primario" data-acao="ir-busca">{t('buscar_musicas')}</button>
         </div>"""
     TELAS["favoritos"].innerHTML = cabecalho + corpo
 
@@ -236,19 +483,19 @@ def renderizar_downloads():
     n = len(downloads)
     cabecalho = f"""
     <div class="tela-topo">
-      <div><h1>Downloads</h1><p>{plural(n, 'música baixada', 'músicas baixadas')}</p></div>
+      <div><h1>{t('menu_downloads')}</h1><p>{plural(n, 'musica_baixada')}</p></div>
     </div>"""
     if downloads:
         corpo = '<ul class="lista">' + "".join(
             html_linha_download(m) for m in downloads.values()
         ) + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">⬇️</div>
-          <h2>Nenhum download realizado</h2>
-          <p>Vá em Favoritos ou na Busca e clique em “Baixar” nas músicas desejadas.</p>
-          <button class="primario" data-acao="ir-busca">Buscar músicas</button>
+          <h2>{t('down_vazio_titulo')}</h2>
+          <p>{t('down_vazio_texto')}</p>
+          <button class="primario" data-acao="ir-busca">{t('buscar_musicas')}</button>
         </div>"""
     TELAS["downloads"].innerHTML = cabecalho + corpo
 
@@ -260,31 +507,31 @@ def renderizar_local():
     n = len(lista_local)
     cabecalho = f"""
     <div class="tela-topo">
-      <div><h1>Dispositivo</h1><p>{plural(n, 'arquivo de áudio encontrado', 'arquivos de áudio encontrados')}</p></div>
-      <button class="primario" data-acao="escolher-pasta-dispositivo">📂 Abrir Pasta</button>
+      <div><h1>{t('menu_local')}</h1><p>{plural(n, 'arquivo')}</p></div>
+      <button class="primario" data-acao="escolher-pasta-dispositivo">{t('abrir_pasta')}</button>
     </div>"""
     if n > 0:
         corpo = '<ul class="lista">' + "".join(html_linha_local(m) for m in lista_local) + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">📂</div>
-          <h2>Nenhuma pasta aberta</h2>
-          <p>Clique no botão acima para selecionar uma pasta do seu dispositivo com músicas.</p>
-          <button class="primario" data-acao="escolher-pasta-dispositivo">📂 Abrir Pasta</button>
+          <h2>{t('local_vazio_titulo')}</h2>
+          <p>{t('local_vazio_texto')}</p>
+          <button class="primario" data-acao="escolher-pasta-dispositivo">{t('abrir_pasta')}</button>
         </div>"""
     TELAS["local"].innerHTML = cabecalho + corpo
 
 def renderizar_albuns():
-    albuns_sub.textContent = plural(len(albuns), "álbum", "álbuns")
+    albuns_sub.textContent = plural(len(albuns), "album")
     if albuns:
         grade_albuns.innerHTML = "".join(html_card_album(n, ids) for n, ids in albuns.items())
     else:
-        grade_albuns.innerHTML = """
+        grade_albuns.innerHTML = f"""
         <div class="vazio">
           <div class="vazio-icone">💿</div>
-          <h2>Nenhum álbum ainda</h2>
-          <p>Digite um nome acima e clique em “Criar álbum”.</p>
+          <h2>{t('albuns_vazio_titulo')}</h2>
+          <p>{t('albuns_vazio_texto')}</p>
         </div>"""
 
 def renderizar_album():
@@ -296,24 +543,24 @@ def renderizar_album():
     if musicas:
         controles_topo = f"""
         <div class="album-controles">
-          <button class="primario" data-acao="tocar-album-sequencial">▶ Tocar em Ordem</button>
-          <button class="icone" data-acao="tocar-album-aleatorio" title="Tocar Aleatório">🔀</button>
+          <button class="primario" data-acao="tocar-album-sequencial">{t('tocar_ordem')}</button>
+          <button class="icone" data-acao="tocar-album-aleatorio" title="{t('tocar_aleatorio')}">🔀</button>
         </div>"""
         lista_html = "".join(html_linha_album(m, i, total) for i, m in enumerate(musicas))
         corpo = controles_topo + '<ul class="lista">' + lista_html + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">🎶</div>
-          <h2>Álbum vazio</h2>
-          <p>Vá em Favoritos e use o menu “＋ Álbum” nas músicas para adicioná-las aqui.</p>
-          <button class="primario" data-acao="ir-favoritos">Ir para Favoritos</button>
+          <h2>{t('album_vazio_titulo')}</h2>
+          <p>{t('album_vazio_texto')}</p>
+          <button class="primario" data-acao="ir-favoritos">{t('ir_favoritos')}</button>
         </div>"""
     TELAS["album"].innerHTML = f"""
-    <button class="voltar" data-acao="ir-albuns">← Álbuns</button>
+    <button class="voltar" data-acao="ir-albuns">{t('voltar_albuns')}</button>
     <div class="tela-topo">
-      <div><h1>{escape(album_aberto)}</h1><p>{plural(total, 'música', 'músicas')}</p></div>
-      <button class="perigo" data-acao="excluir-album">Excluir álbum</button>
+      <div><h1>{escape(album_aberto)}</h1><p>{plural(total, 'musica')}</p></div>
+      <button class="perigo" data-acao="excluir-album">{t('excluir_album')}</button>
     </div>
     {corpo}"""
 
@@ -377,18 +624,18 @@ def atualizar_botoes_card(id_):
     if botao_fav:
         if id_ in favoritos:
             botao_fav.className = "btn-salvar ativo"
-            botao_fav.textContent = "✓ Salva nos Favoritos"
+            botao_fav.textContent = t("fav_on")
         else:
             botao_fav.className = "btn-salvar"
-            botao_fav.textContent = "⭐ Salvar nos Favoritos"
+            botao_fav.textContent = t("fav_off")
     botao_down = document.querySelector(f'[data-acao="baixar-musica"][data-id="{id_}"]')
     if botao_down:
         if id_ in downloads:
             botao_down.className = "btn-salvar ativo"
-            botao_down.textContent = "✓ Baixado"
+            botao_down.textContent = t("down_on")
         else:
             botao_down.className = "btn-salvar"
-            botao_down.textContent = "⬇ Baixar"
+            botao_down.textContent = t("down_off")
 
 def obter_ou_criar_musica(alvo, id_):
     if id_ in downloads:
@@ -418,12 +665,12 @@ def favoritar_ou_remover(id_, alvo):
         for ids in albuns.values():
             if id_ in ids:
                 ids.remove(id_)
-        avisar("Removida dos favoritos")
+        avisar(t("toast_fav_off"))
     else:
         musica = obter_ou_criar_musica(alvo, id_)
         if musica:
             favoritos[id_] = musica
-            avisar("Salva nos Favoritos")
+            avisar(t("toast_fav_on"))
     guardar("favoritos", favoritos)
     guardar("albuns", albuns)
     atualizar_botoes_card(id_)
@@ -433,7 +680,7 @@ def baixar_musica(id_, alvo):
     if id_ in downloads:
         del downloads[id_]
         guardar("downloads", downloads)
-        avisar("Download removido")
+        avisar(t("toast_down_off"))
     else:
         musica = obter_ou_criar_musica(alvo, id_)
         if musica:
@@ -441,7 +688,7 @@ def baixar_musica(id_, alvo):
             guardar("downloads", downloads)
             nome_arquivo = f"{musica['artista']} - {musica['nome']}"
             window.baixarArquivoNoAparelho(musica["audio"], nome_arquivo)
-            avisar("Música baixada com sucesso!")
+            avisar(t("toast_down_on"))
     atualizar_botoes_card(id_)
     mostrar_tela()
 
@@ -452,7 +699,7 @@ def remover_download(id_):
     if id_ in downloads:
         del downloads[id_]
         guardar("downloads", downloads)
-        avisar("Download removido")
+        avisar(t("toast_down_off"))
         mostrar_tela()
 
 def tocar_musica_obj(musica, sem_limite=False):
@@ -460,6 +707,8 @@ def tocar_musica_obj(musica, sem_limite=False):
         return
     player.src = musica.get("audio_completo") if sem_limite else musica["audio"]
     player.play()
+    np_nome.removeAttribute("data-i18n")      # agora mostra o nome da música
+    np_artista.removeAttribute("data-i18n")
     np_capa.innerHTML = f'<img src="{escape(musica["capa"])}" alt="">' if musica.get("capa") else "📂"
     np_nome.textContent = musica["nome"]
     np_artista.textContent = musica["artista"]
@@ -503,11 +752,11 @@ def mover_musica_album(index, direcao):
 def adicionar_ao_album(nome, id_):
     ids = albuns.setdefault(nome, [])
     if id_ in ids:
-        avisar(f"Já está em “{nome}”")
+        avisar(t("toast_ja_no_album", nome=nome))
         return
     ids.append(id_)
     guardar("albuns", albuns)
-    avisar(f"Adicionada a “{nome}”")
+    avisar(t("toast_add_album", nome=nome))
     mostrar_tela()
 
 def criar_album(evento):
@@ -516,19 +765,19 @@ def criar_album(evento):
     if not nome:
         return
     if nome in albuns:
-        avisar("Já existe um álbum com esse nome")
+        avisar(t("toast_album_existe"))
         return
     albuns[nome] = []
     guardar("albuns", albuns)
     campo_album.value = ""
-    avisar(f"Álbum “{nome}” criado")
+    avisar(t("toast_album_criado", nome=nome))
     mostrar_tela()
 
 def excluir_album():
-    if window.confirm(f"Excluir o álbum “{album_aberto}”? As músicas continuam nos favoritos."):
+    if window.confirm(t("confirm_excluir", nome=album_aberto)):
         albuns.pop(album_aberto, None)
         guardar("albuns", albuns)
-        avisar("Álbum excluído")
+        avisar(t("toast_album_excluido"))
         ir_para("albuns")
 
 def ao_enviar_busca(evento):
@@ -539,27 +788,27 @@ async def executar_busca():
     global resultados_atuais
     termo = campo_busca.value.strip()
     if not termo:
-        status.textContent = "Digite o nome de um artista ou música."
+        definir_status("status_digite")
         return
 
     ir_para("busca")
     grade.innerHTML = ""
-    status.textContent = "Buscando músicas…"
+    definir_status("status_buscando")
 
     try:
         resultados = await buscar_musicas(termo)
     except Exception:
-        status.textContent = "Erro ao buscar. Verifique sua internet e tente de novo."
+        definir_status("status_erro")
         return
 
     musicas = [simplificar(m) for m in resultados if m.get("previewUrl")]
 
     if not musicas:
-        status.textContent = "Não encontramos resultados."
+        definir_status("status_vazio")
         return
 
     resultados_atuais = {m["id"]: m for m in musicas}
-    status.textContent = f"{len(musicas)} resultados para “{termo}”"
+    definir_status("status_resultados", n=len(musicas), termo=termo)
     grade.innerHTML = "".join(html_card(m) for m in musicas)
 
 
@@ -627,6 +876,8 @@ def ao_clicar(evento):
     # Clique fora do pop-up fecha o pop-up
     if evento.target.closest(".menu-wrap") is None:
         fechar_menu()
+    if evento.target.closest(".idioma-wrap") is None:
+        fechar_idioma()
 
     alvo = evento.target.closest("[data-acao]")
     if alvo is None:
@@ -636,6 +887,11 @@ def ao_clicar(evento):
 
     if acao == "menu":
         abrir_menu_ou_fechar()
+    elif acao == "idioma":
+        abrir_idioma_ou_fechar()
+    elif acao == "escolher-idioma":
+        aplicar_idioma(alvo.getAttribute("data-idioma"))
+        fechar_idioma()
     elif acao == "ir-albuns":
         ir_para("albuns")
     elif acao == "ir-favoritos":
@@ -703,6 +959,7 @@ def pausar_outros(evento):
 def ao_teclar(evento):
     if evento.key == "Escape":
         fechar_menu()
+        fechar_idioma()
 
 
 def atualizar_tela_local():
@@ -732,5 +989,14 @@ tema_salvo = carregar("tema", None)
 if tema_salvo:
     document.documentElement.setAttribute("data-theme", tema_salvo)
 
-mostrar_tela()
-    
+# Deixa o JavaScript pedir textos traduzidos (usado nos alertas do index.html)
+window.traduzir = create_proxy(traduzir_js)
+
+# Idioma inicial: o que o utilizador escolheu da última vez; senão, o do navegador.
+idioma_salvo = carregar("idioma", None)
+if idioma_salvo not in TRADUCOES:
+    try:
+        idioma_salvo = str(window.navigator.language)[:2].lower()
+    except Exception:
+        idioma_salvo = "pt"
+aplicar_idioma(idioma_salvo)   # também desenha a tela inicial
