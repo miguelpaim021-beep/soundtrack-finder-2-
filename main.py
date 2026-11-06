@@ -559,4 +559,178 @@ async def executar_busca():
         return
 
     resultados_atuais = {m["id"]: m for m in musicas}
-    sta
+    status.textContent = f"{len(musicas)} resultados para “{termo}”"
+    grade.innerHTML = "".join(html_card(m) for m in musicas)
+
+
+# ---------- Fila de reprodução do álbum ----------
+fila_album = []   # músicas que serão tocadas em sequência
+pos_album = -1    # posição atual na fila
+
+
+def limpar_fila():
+    """Cancela a fila (usado quando o utilizador toca uma música avulsa)."""
+    global fila_album, pos_album
+    fila_album = []
+    pos_album = -1
+
+
+def tocar_da_fila(pos):
+    """Toca a música da posição `pos` da fila."""
+    global pos_album
+    if 0 <= pos < len(fila_album):
+        pos_album = pos
+        tocar_musica_obj(fila_album[pos], sem_limite=True)
+
+
+def musicas_do_album():
+    """Lista as músicas do álbum aberto (na ordem guardada)."""
+    if album_aberto not in albuns:
+        return []
+    return [favoritos[i] for i in albuns[album_aberto] if i in favoritos]
+
+
+def tocar_album(aleatorio=False):
+    """Inicia o álbum aberto, em ordem ou aleatório."""
+    global fila_album
+    musicas = musicas_do_album()
+    if not musicas:
+        return
+    fila_album = list(musicas)
+    if aleatorio:
+        random.shuffle(fila_album)
+    tocar_da_fila(0)
+
+
+def ao_terminar_musica(evento):
+    """Quando a música do player termina, passa à seguinte da fila."""
+    if fila_album and evento.target.isSameNode(player):
+        tocar_da_fila(pos_album + 1)
+
+
+# ---------- Tema ----------
+def aplicar_tema(tema):
+    document.documentElement.setAttribute("data-theme", tema)
+    guardar("tema", tema)
+
+
+def alternar_tema(evento):
+    atual = document.documentElement.getAttribute("data-theme")
+    aplicar_tema("light" if atual == "dark" else "dark")
+
+
+# ---------- Eventos ----------
+def ao_clicar(evento):
+    """Ouvinte ÚNICO de cliques (delegação de eventos): lê o data-acao do botão."""
+    global fila_album, pos_album
+
+    # Clique fora do pop-up fecha o pop-up
+    if evento.target.closest(".menu-wrap") is None:
+        fechar_menu()
+
+    alvo = evento.target.closest("[data-acao]")
+    if alvo is None:
+        return
+    acao = alvo.getAttribute("data-acao")
+    id_ = alvo.getAttribute("data-id")
+
+    if acao == "menu":
+        abrir_menu_ou_fechar()
+    elif acao == "ir-albuns":
+        ir_para("albuns")
+    elif acao == "ir-favoritos":
+        ir_para("favoritos")
+    elif acao == "ir-downloads":
+        ir_para("downloads")
+    elif acao == "ir-local":
+        ir_para("local")
+    elif acao == "ir-busca":
+        ir_para("busca")
+    elif acao == "abrir-album":
+        ir_para("album", alvo.getAttribute("data-nome"))
+    elif acao == "excluir-album":
+        excluir_album()
+    elif acao in ("favoritar", "remover-favorito"):
+        favoritar_ou_remover(id_, alvo)
+    elif acao == "baixar-musica":
+        baixar_musica(id_, alvo)
+    elif acao == "remover-download":
+        remover_download(id_)
+    elif acao == "remover-do-album":
+        if id_ in albuns.get(album_aberto, []):
+            albuns[album_aberto].remove(id_)
+            guardar("albuns", albuns)
+            mostrar_tela()
+    elif acao == "mover-cima":
+        mover_musica_album(int(alvo.getAttribute("data-index")), -1)
+    elif acao == "mover-baixo":
+        mover_musica_album(int(alvo.getAttribute("data-index")), 1)
+    elif acao == "tocar-favorito":
+        limpar_fila()
+        tocar_favorito(id_)
+    elif acao == "tocar-download":
+        limpar_fila()
+        tocar_download(id_)
+    elif acao == "tocar-local":
+        limpar_fila()
+        tocar_local(id_)
+    elif acao == "tocar-album-index":
+        # Toca a partir desta música e continua pelas seguintes do álbum.
+        fila_album = musicas_do_album()
+        tocar_da_fila(int(alvo.getAttribute("data-index")))
+    elif acao == "tocar-album-sequencial":
+        tocar_album(aleatorio=False)
+    elif acao == "tocar-album-aleatorio":
+        tocar_album(aleatorio=True)
+    elif acao == "escolher-pasta-dispositivo":
+        escolher_pasta_dispositivo()
+
+
+def ao_mudar(evento):
+    """Menu '＋ Álbum' das músicas favoritas."""
+    alvo = evento.target
+    if alvo.getAttribute("data-acao") == "add-album" and alvo.value:
+        adicionar_ao_album(alvo.value, alvo.getAttribute("data-id"))
+
+
+def pausar_outros(evento):
+    """Um áudio de cada vez: quando um começa, pausa os outros."""
+    for a in document.querySelectorAll("audio"):
+        if not a.isSameNode(evento.target):
+            a.pause()
+
+
+def ao_teclar(evento):
+    if evento.key == "Escape":
+        fechar_menu()
+
+
+def atualizar_tela_local():
+    """Chamada pelo JavaScript depois de escolher a pasta do dispositivo."""
+    if tela == "local":
+        mostrar_tela()
+    else:
+        atualizar_contadores()
+
+
+form_busca.addEventListener("submit", create_proxy(ao_enviar_busca))
+form_album.addEventListener("submit", create_proxy(criar_album))
+document.addEventListener("click", create_proxy(ao_clicar))
+document.addEventListener("change", create_proxy(ao_mudar))
+document.addEventListener("keydown", create_proxy(ao_teclar))
+# 'play' e 'ended' não "borbulham", por isso usamos a fase de captura (True).
+document.addEventListener("play", create_proxy(pausar_outros), True)
+document.addEventListener("ended", create_proxy(ao_terminar_musica), True)
+botao_tema.addEventListener("click", create_proxy(alternar_tema))
+
+# Deixa o JavaScript avisar o Python quando a pasta do dispositivo for lida.
+window.atualizarTelaLocalPy = create_proxy(atualizar_tela_local)
+
+
+# ---------- Início ----------
+tema_salvo = carregar("tema", None)
+if tema_salvo:
+    document.documentElement.setAttribute("data-theme", tema_salvo)
+
+mostrar_tela()
+    
