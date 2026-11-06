@@ -15,6 +15,115 @@ from pyodide.ffi import create_proxy
 API_URL = "https://itunes.apple.com/search"
 LIMITE = 12
 
+# Dicionário de Traduções (PT, EN, ES)
+TRADUCOES = {
+    "pt": {
+        "menu_albuns": "Álbuns",
+        "menu_albuns_sub": "Suas playlists",
+        "menu_favoritos": "Favoritos",
+        "menu_favoritos_sub": "Músicas favoritas",
+        "menu_downloads": "Downloads",
+        "menu_downloads_sub": "Músicas baixadas",
+        "menu_local": "Dispositivo",
+        "menu_local_sub": "Músicas locais",
+        "busca_placeholder": "Busque um artista ou música…",
+        "album_placeholder": "Nome do novo álbum…",
+        "btn_pesquisar": "Buscar",
+        "btn_criar_album": "＋ Criar álbum",
+        "status_inicio": "Digite algo para começar.",
+        "player_nada": "Nada tocando",
+        "player_sub": "Escolha uma música para ouvir",
+        "salvar_fav": "⭐ Salvar nos Favoritos",
+        "salvo_fav": "✓ Salva nos Favoritos",
+        "baixar": "⬇ Baixar",
+        "baixado": "✓ Baixado",
+        "msg_salvo": "Salva nos Favoritos",
+        "msg_remover_fav": "Removida dos favoritos",
+        "msg_baixado": "Música baixada com sucesso!",
+        "msg_down_rem": "Download removido",
+        "msg_album_criado": "Álbum criado",
+        "msg_ja_existe": "Já existe um álbum com esse nome",
+        "msg_excluir_album": "Álbum excluído",
+        "abrir_pasta": "📂 Abrir Pasta",
+        "nenhuma_pasta": "Nenhuma pasta aberta",
+        "nenhuma_pasta_desc": "Clique no botão acima para selecionar uma pasta do seu dispositivo com músicas.",
+        "nenhum_fav_titulo": "Nenhum favorito ainda",
+        "nenhum_fav_desc": "Busque uma música e toque em “Salvar nos Favoritos”.",
+        "nenhum_down_titulo": "Nenhum download realizado",
+        "nenhum_down_desc": "Vá em Favoritos ou na Busca e clique em “Baixar” nas músicas desejadas.",
+    },
+    "en": {
+        "menu_albuns": "Albums",
+        "menu_albuns_sub": "Your playlists",
+        "menu_favoritos": "Favorites",
+        "menu_favoritos_sub": "Favorite songs",
+        "menu_downloads": "Downloads",
+        "menu_downloads_sub": "Downloaded songs",
+        "menu_local": "Device",
+        "menu_local_sub": "Local songs",
+        "busca_placeholder": "Search for an artist or song…",
+        "album_placeholder": "New album name…",
+        "btn_pesquisar": "Search",
+        "btn_criar_album": "＋ Create album",
+        "status_inicio": "Type something to start.",
+        "player_nada": "Nothing playing",
+        "player_sub": "Choose a song to listen to",
+        "salvar_fav": "⭐ Save to Favorites",
+        "salvo_fav": "✓ Saved to Favorites",
+        "baixar": "⬇ Download",
+        "baixado": "✓ Downloaded",
+        "msg_salvo": "Saved to Favorites",
+        "msg_remover_fav": "Removed from favorites",
+        "msg_baixado": "Song downloaded successfully!",
+        "msg_down_rem": "Download removed",
+        "msg_album_criado": "Album created",
+        "msg_ja_existe": "An album with this name already exists",
+        "msg_excluir_album": "Album deleted",
+        "abrir_pasta": "📂 Open Folder",
+        "nenhuma_pasta": "No folder opened",
+        "nenhuma_pasta_desc": "Click the button above to select a folder with songs from your device.",
+        "nenhum_fav_titulo": "No favorites yet",
+        "nenhum_fav_desc": "Search for a song and tap “Save to Favorites”.",
+        "nenhum_down_titulo": "No downloads yet",
+        "nenhum_down_desc": "Go to Favorites or Search and click “Download” on desired songs.",
+    },
+    "es": {
+        "menu_albuns": "Álbumes",
+        "menu_albuns_sub": "Tus listas",
+        "menu_favoritos": "Favoritos",
+        "menu_favoritos_sub": "Canciones favoritas",
+        "menu_downloads": "Descargas",
+        "menu_downloads_sub": "Canciones descargadas",
+        "menu_local": "Dispositivo",
+        "menu_local_sub": "Canciones locales",
+        "busca_placeholder": "Busca un artista o canción…",
+        "album_placeholder": "Nombre del nuevo álbum…",
+        "btn_pesquisar": "Buscar",
+        "btn_criar_album": "＋ Crear álbum",
+        "status_inicio": "Escribe algo para empezar.",
+        "player_nada": "Nada sonando",
+        "player_sub": "Elige una canción para escuchar",
+        "salvar_fav": "⭐ Guardar en Favoritos",
+        "salvo_fav": "✓ Guardado en Favoritos",
+        "baixar": "⬇ Descargar",
+        "baixado": "✓ Descargado",
+        "msg_salvo": "Guardado en Favoritos",
+        "msg_remover_fav": "Eliminado de favoritos",
+        "msg_baixado": "¡Canción descargada com éxito!",
+        "msg_down_rem": "Descarga eliminada",
+        "msg_album_criado": "Álbum creado",
+        "msg_ja_existe": "Ya existe un álbum con este nombre",
+        "msg_excluir_album": "Álbum eliminado",
+        "abrir_pasta": "📂 Abrir Carpeta",
+        "nenhuma_pasta": "Ninguna carpeta abierta",
+        "nenhuma_pasta_desc": "Haz clic arriba para seleccionar una carpeta de tu dispositivo con música.",
+        "nenhum_fav_titulo": "No hay favoritos todavía",
+        "nenhum_fav_desc": "Busca una canción y toca “Guardar en Favoritos”.",
+        "nenhum_down_titulo": "No hay descargas",
+        "nenhum_down_desc": "Ve a Favoritos o Buscar y haz clic en “Descargar” en las canciones.",
+    }
+}
+
 form_busca = document.querySelector("#search-form")
 campo_busca = document.querySelector("#search-input")
 botao_tema = document.querySelector("#theme-btn")
@@ -24,6 +133,7 @@ menu_qtd_albuns = document.querySelector("#menu-qtd-albuns")
 menu_qtd_favoritos = document.querySelector("#menu-qtd-favoritos")
 menu_qtd_downloads = document.querySelector("#menu-qtd-downloads")
 menu_qtd_local = document.querySelector("#menu-qtd-local")
+select_idioma = document.querySelector("#lang-select")
 
 TELAS = {
     "busca": document.querySelector("#tela-busca"),
@@ -65,11 +175,24 @@ def guardar(chave, valor):
 favoritos = carregar("favoritos", {})
 downloads = carregar("downloads", {})
 albuns = carregar("albuns", {})
-resultados_atuais = {}
+idioma_atual = carregar("idioma", "pt")
+select_idioma.value = idioma_atual
 
+resultados_atuais = {}
 tela = "busca"
 album_aberto = None
 timer_aviso = None
+
+def t(chave):
+    return TRADUCOES.get(idioma_atual, TRADUCOES["pt"]).get(chave, chave)
+
+def atualizar_textos_estaticos():
+    for el in document.querySelectorAll("[data-i18n]"):
+        chave = el.getAttribute("data-i18n")
+        el.textContent = t(chave)
+    for el in document.querySelectorAll("[data-i18n-placeholder]"):
+        chave = el.getAttribute("data-i18n-placeholder")
+        el.setAttribute("placeholder", t(chave))
 
 async def buscar_musicas(termo):
     params = urlencode({"term": termo, "entity": "song", "limit": LIMITE})
@@ -103,11 +226,11 @@ def html_card(m):
 
     salva = id_ in favoritos
     classe_fav = "btn-salvar ativo" if salva else "btn-salvar"
-    texto_fav = "✓ Salva nos Favoritos" if salva else "⭐ Salvar nos Favoritos"
+    texto_fav = t("salvo_fav") if salva else t("salvar_fav")
 
     baixada = id_ in downloads
     classe_down = "btn-salvar ativo" if baixada else "btn-salvar"
-    texto_down = "✓ Baixado" if baixada else "⬇ Baixar"
+    texto_down = t("baixado") if baixada else t("baixar")
 
     return f"""
     <article class="card">
@@ -130,13 +253,13 @@ def html_linha_favorito(m):
             f'<option value="">＋ Álbum</option>{opcoes}</select>'
         )
     else:
-        extra = '<button class="link" data-acao="ir-albuns">Criar álbum</button>'
+        extra = f'<button class="link" data-acao="ir-albuns">{t("btn_criar_album")}</button>'
 
     baixada = id_ in downloads
     titulo_baixar = "Baixado" if baixada else "Baixar música"
     classe_baixar = "icone pequeno ativo" if baixada else "icone pequeno"
     
-    # Apenas o ícone compacto, sem texto ao lado
+    # Apenas o ícone compacto
     icone_texto = "✓" if baixada else "⬇"
     btn_baixar = f'<button class="{classe_baixar}" data-acao="baixar-musica" data-id="{id_}" data-nome="{escape(m["nome"])}" data-artista="{escape(m["artista"])}" data-capa="{escape(m["capa"])}" data-audio="{escape(m["audio"])}" title="{titulo_baixar}">{icone_texto}</button>'
 
@@ -216,19 +339,19 @@ def renderizar_favoritos():
     n = len(favoritos)
     cabecalho = f"""
     <div class="tela-topo">
-      <div><h1>Favoritos</h1><p>{plural(n, 'música favorita', 'músicas favoritas')}</p></div>
+      <div><h1>{t("menu_favoritos")}</h1><p>{plural(n, 'música favorita', 'músicas favoritas')}</p></div>
     </div>"""
     if favoritos:
         corpo = '<ul class="lista">' + "".join(
             html_linha_favorito(m) for m in favoritos.values()
         ) + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">⭐</div>
-          <h2>Nenhum favorito ainda</h2>
-          <p>Busque uma música e toque em “Salvar nos Favoritos”.</p>
-          <button class="primario" data-acao="ir-busca">Buscar músicas</button>
+          <h2>{t("nenhum_fav_titulo")}</h2>
+          <p>{t("nenhum_fav_desc")}</p>
+          <button class="primario" data-acao="ir-busca">{t("btn_pesquisar")}</button>
         </div>"""
     TELAS["favoritos"].innerHTML = cabecalho + corpo
 
@@ -236,19 +359,19 @@ def renderizar_downloads():
     n = len(downloads)
     cabecalho = f"""
     <div class="tela-topo">
-      <div><h1>Downloads</h1><p>{plural(n, 'música baixada', 'músicas baixadas')}</p></div>
+      <div><h1>{t("menu_downloads")}</h1><p>{plural(n, 'música baixada', 'músicas baixadas')}</p></div>
     </div>"""
     if downloads:
         corpo = '<ul class="lista">' + "".join(
             html_linha_download(m) for m in downloads.values()
         ) + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">⬇️</div>
-          <h2>Nenhum download realizado</h2>
-          <p>Vá em Favoritos ou na Busca e clique em “Baixar” nas músicas desejadas.</p>
-          <button class="primario" data-acao="ir-busca">Buscar músicas</button>
+          <h2>{t("nenhum_down_titulo")}</h2>
+          <p>{t("nenhum_down_desc")}</p>
+          <button class="primario" data-acao="ir-busca">{t("btn_pesquisar")}</button>
         </div>"""
     TELAS["downloads"].innerHTML = cabecalho + corpo
 
@@ -260,18 +383,18 @@ def renderizar_local():
     n = len(lista_local)
     cabecalho = f"""
     <div class="tela-topo">
-      <div><h1>Dispositivo</h1><p>{plural(n, 'arquivo de áudio encontrado', 'arquivos de áudio encontrados')}</p></div>
-      <button class="primario" data-acao="escolher-pasta-dispositivo">📂 Abrir Pasta</button>
+      <div><h1>{t("menu_local")}</h1><p>{plural(n, 'arquivo de áudio encontrado', 'arquivos de áudio encontrados')}</p></div>
+      <button class="primario" data-acao="escolher-pasta-dispositivo">{t("abrir_pasta")}</button>
     </div>"""
     if n > 0:
         corpo = '<ul class="lista">' + "".join(html_linha_local(m) for m in lista_local) + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">📂</div>
-          <h2>Nenhuma pasta aberta</h2>
-          <p>Clique no botão acima para selecionar uma pasta do seu dispositivo com músicas.</p>
-          <button class="primario" data-acao="escolher-pasta-dispositivo">📂 Abrir Pasta</button>
+          <h2>{t("nenhuma_pasta")}</h2>
+          <p>{t("nenhuma_pasta_desc")}</p>
+          <button class="primario" data-acao="escolher-pasta-dispositivo">{t("abrir_pasta")}</button>
         </div>"""
     TELAS["local"].innerHTML = cabecalho + corpo
 
@@ -280,11 +403,11 @@ def renderizar_albuns():
     if albuns:
         grade_albuns.innerHTML = "".join(html_card_album(n, ids) for n, ids in albuns.items())
     else:
-        grade_albuns.innerHTML = """
+        grade_albuns.innerHTML = f"""
         <div class="vazio">
           <div class="vazio-icone">💿</div>
-          <h2>Nenhum álbum ainda</h2>
-          <p>Digite um nome acima e clique em “Criar álbum”.</p>
+          <h2>{t("menu_albuns")}</h2>
+          <p>{t("album_placeholder")}</p>
         </div>"""
 
 def renderizar_album():
@@ -302,15 +425,15 @@ def renderizar_album():
         lista_html = "".join(html_linha_album(m, i, total) for i, m in enumerate(musicas))
         corpo = controles_topo + '<ul class="lista">' + lista_html + "</ul>"
     else:
-        corpo = """
+        corpo = f"""
         <div class="vazio">
           <div class="vazio-icone">🎶</div>
           <h2>Álbum vazio</h2>
-          <p>Vá em Favoritos e use o menu “＋ Álbum” nas músicas para adicioná-las aqui.</p>
+          <p>{t("menu_favoritos")}</p>
           <button class="primario" data-acao="ir-favoritos">Ir para Favoritos</button>
         </div>"""
     TELAS["album"].innerHTML = f"""
-    <button class="voltar" data-acao="ir-albuns">← Álbuns</button>
+    <button class="voltar" data-acao="ir-albuns">← {t("menu_albuns")}</button>
     <div class="tela-topo">
       <div><h1>{escape(album_aberto)}</h1><p>{plural(total, 'música', 'músicas')}</p></div>
       <button class="perigo" data-acao="excluir-album">Excluir álbum</button>
@@ -328,6 +451,7 @@ def atualizar_contadores():
         menu_qtd_local.textContent = "0"
 
 def mostrar_tela():
+    atualizar_textos_estaticos()
     for nome, secao in TELAS.items():
         secao.hidden = nome != tela
     if tela == "favoritos":
@@ -377,295 +501,6 @@ def atualizar_botoes_card(id_):
     if botao_fav:
         if id_ in favoritos:
             botao_fav.className = "btn-salvar ativo"
-            botao_fav.textContent = "✓ Salva nos Favoritos"
+            botao_fav.textContent = t("salvo_fav")
         else:
-            botao_fav.className = "btn-salvar"
-            botao_fav.textContent = "⭐ Salvar nos Favoritos"
-    botao_down = document.querySelector(f'[data-acao="baixar-musica"][data-id="{id_}"]')
-    if botao_down:
-        if id_ in downloads:
-            botao_down.className = "btn-salvar ativo"
-            botao_down.textContent = "✓ Baixado"
-        else:
-            botao_down.className = "btn-salvar"
-            botao_down.textContent = "⬇ Baixar"
-
-def obter_ou_criar_musica(alvo, id_):
-    if id_ in downloads:
-        return downloads[id_]
-    if id_ in favoritos:
-        return favoritos[id_]
-    if id_ in resultados_atuais:
-        return resultados_atuais[id_]
-    nome = alvo.getAttribute("data-nome")
-    artista = alvo.getAttribute("data-artista")
-    capa = alvo.getAttribute("data-capa")
-    audio = alvo.getAttribute("data-audio")
-    if nome and audio:
-        return {
-            "id": id_,
-            "nome": nome,
-            "artista": artista or "Artista desconhecido",
-            "capa": capa or "",
-            "audio": audio,
-            "audio_completo": audio,
-        }
-    return None
-
-def favoritar_ou_remover(id_, alvo):
-    if id_ in favoritos:
-        del favoritos[id_]
-        for ids in albuns.values():
-            if id_ in ids:
-                ids.remove(id_)
-        avisar("Removida dos favoritos")
-    else:
-        musica = obter_ou_criar_musica(alvo, id_)
-        if musica:
-            favoritos[id_] = musica
-            avisar("Salva nos Favoritos")
-    guardar("favoritos", favoritos)
-    guardar("albuns", albuns)
-    atualizar_botoes_card(id_)
-    mostrar_tela()
-
-def baixar_musica(id_, alvo):
-    if id_ in downloads:
-        del downloads[id_]
-        guardar("downloads", downloads)
-        avisar("Download removido")
-    else:
-        musica = obter_ou_criar_musica(alvo, id_)
-        if musica:
-            downloads[id_] = musica
-            guardar("downloads", downloads)
-            nome_arquivo = f"{musica['artista']} - {musica['nome']}"
-            window.baixarArquivoNoAparelho(musica["audio"], nome_arquivo)
-            avisar("Música baixada com sucesso!")
-    atualizar_botoes_card(id_)
-    mostrar_tela()
-
-def escolher_pasta_dispositivo():
-    window.selecionarPastaDispositivo()
-
-def remover_download(id_):
-    if id_ in downloads:
-        del downloads[id_]
-        guardar("downloads", downloads)
-        avisar("Download removido")
-        mostrar_tela()
-
-def tocar_musica_obj(musica, sem_limite=False):
-    if not musica:
-        return
-    player.src = musica.get("audio_completo") if sem_limite else musica["audio"]
-    player.play()
-    np_capa.innerHTML = f'<img src="{escape(musica["capa"])}" alt="">' if musica.get("capa") else "📂"
-    np_nome.textContent = musica["nome"]
-    np_artista.textContent = musica["artista"]
-
-def tocar_favorito(id_):
-    musica = favoritos.get(id_)
-    tocar_musica_obj(musica, sem_limite=True)
-
-def tocar_download(id_):
-    musica = downloads.get(id_)
-    tocar_musica_obj(musica, sem_limite=True)
-
-def tocar_local(id_):
-    try:
-        lista_local = window.localMusicas.to_py() if hasattr(window.localMusicas, "to_py") else []
-    except Exception:
-        lista_local = []
-    for m in lista_local:
-        if m["id"] == id_:
-            tocar_musica_obj(m, sem_limite=True)
-            break
-
-def tocar_album_por_indice(index):
-    if album_aberto not in albuns:
-        return
-    ids = albuns[album_aberto]
-    musicas = [favoritos[i] for i in ids if i in favoritos]
-    if 0 <= index < len(musicas):
-        tocar_musica_obj(musicas[index], sem_limite=True)
-
-def mover_musica_album(index, direcao):
-    if album_aberto not in albuns:
-        return
-    ids = albuns[album_aberto]
-    novo_index = index + direcao
-    if 0 <= novo_index < len(ids):
-        ids[index], ids[novo_index] = ids[novo_index], ids[index]
-        guardar("albuns", albuns)
-        renderizar_album()
-
-def adicionar_ao_album(nome, id_):
-    ids = albuns.setdefault(nome, [])
-    if id_ in ids:
-        avisar(f"Já está em “{nome}”")
-        return
-    ids.append(id_)
-    guardar("albuns", albuns)
-    avisar(f"Adicionada a “{nome}”")
-    mostrar_tela()
-
-def criar_album(evento):
-    evento.preventDefault()
-    nome = campo_album.value.strip()
-    if not nome:
-        return
-    if nome in albuns:
-        avisar("Já existe um álbum com esse nome")
-        return
-    albuns[nome] = []
-    guardar("albuns", albuns)
-    campo_album.value = ""
-    avisar(f"Álbum “{nome}” criado")
-    mostrar_tela()
-
-def excluir_album():
-    if window.confirm(f"Excluir o álbum “{album_aberto}”? As músicas continuam nos favoritos."):
-        albuns.pop(album_aberto, None)
-        guardar("albuns", albuns)
-        avisar("Álbum excluído")
-        ir_para("albuns")
-
-def ao_enviar_busca(evento):
-    evento.preventDefault()
-    asyncio.ensure_future(executar_busca())
-
-async def executar_busca():
-    global resultados_atuais
-    termo = campo_busca.value.strip()
-    if not termo:
-        status.textContent = "Digite o nome de um artista ou música."
-        return
-
-    ir_para("busca")
-    grade.innerHTML = ""
-    status.textContent = "Buscando músicas…"
-
-    try:
-        resultados = await buscar_musicas(termo)
-    except Exception:
-        status.textContent = "Erro ao buscar. Verifique sua internet e tente de novo."
-        return
-
-    musicas = [simplificar(m) for m in resultados if m.get("previewUrl")]
-
-    if not musicas:
-        status.textContent = "Não encontramos resultados."
-        return
-
-    resultados_atuais = {m["id"]: m for m in musicas}
-    status.textContent = f"{len(musicas)} resultados para “{termo}”"
-    grade.innerHTML = "".join(html_card(m) for m in musicas)
-
-def aplicar_tema(tema):
-    document.documentElement.setAttribute("data-theme", tema)
-    guardar("tema", tema)
-
-def alternar_tema(evento):
-    atual = document.documentElement.getAttribute("data-theme")
-    aplicar_tema("light" if atual == "dark" else "dark")
-
-def atualizar_tela_local_py():
-    if tela == "local":
-        renderizar_local()
-    atualizar_contadores()
-
-window.atualizarTelaLocalPy = create_proxy(atualizar_tela_local_py)
-
-def ao_clicar(evento):
-    if evento.target.closest(".menu-wrap") is None:
-        fechar_menu()
-
-    alvo = evento.target.closest("[data-acao]")
-    if alvo is None:
-        return
-    acao = alvo.getAttribute("data-acao")
-    id_ = alvo.getAttribute("data-id")
-
-    if acao == "menu":
-        abrir_menu_ou_fechar()
-    elif acao == "ir-albuns":
-        ir_para("albuns")
-    elif acao == "ir-favoritos":
-        ir_para("favoritos")
-    elif acao == "ir-downloads":
-        ir_para("downloads")
-    elif acao == "ir-local":
-        ir_para("local")
-    elif acao == "ir-busca":
-        ir_para("busca")
-    elif acao == "escolher-pasta-dispositivo":
-        escolher_pasta_dispositivo()
-    elif acao == "abrir-album":
-        ir_para("album", alvo.getAttribute("data-nome"))
-    elif acao == "excluir-album":
-        excluir_album()
-    elif acao in ("favoritar", "remover-favorito"):
-        favoritar_ou_remover(id_, alvo)
-    elif acao == "baixar-musica":
-        baixar_musica(id_, alvo)
-    elif acao == "remover-download":
-        remover_download(id_)
-    elif acao == "remover-do-album":
-        if id_ in albuns.get(album_aberto, []):
-            albuns[album_aberto].remove(id_)
-            guardar("albuns", albuns)
-            mostrar_tela()
-    elif acao == "tocar-favorito":
-        tocar_favorito(id_)
-    elif acao == "tocar-download":
-        tocar_download(id_)
-    elif acao == "tocar-local":
-        tocar_local(id_)
-    elif acao == "tocar-album-index":
-        index = int(alvo.getAttribute("data-index"))
-        tocar_album_por_indice(index)
-    elif acao == "mover-cima":
-        index = int(alvo.getAttribute("data-index"))
-        mover_musica_album(index, -1)
-    elif acao == "mover-baixo":
-        index = int(alvo.getAttribute("data-index"))
-        mover_musica_album(index, 1)
-    elif acao == "tocar-album-sequencial":
-        tocar_album_por_indice(0)
-    elif acao == "tocar-album-aleatorio":
-        if album_aberto in albuns and albuns[album_aberto]:
-            ids = albuns[album_aberto]
-            musicas = [favoritos[i] for i in ids if i in favoritos]
-            if musicas:
-                escolhida = random.choice(musicas)
-                tocar_musica_obj(escolhida, sem_limite=True)
-                avisar("Reproduzindo música aleatória do álbum")
-
-def ao_mudar(evento):
-    alvo = evento.target
-    if alvo.getAttribute("data-acao") == "add-album" and alvo.value:
-        adicionar_ao_album(alvo.value, alvo.getAttribute("data-id"))
-
-def pausar_outros(evento):
-    for a in document.querySelectorAll("audio"):
-        if not a.isSameNode(evento.target):
-            a.pause()
-
-def ao_teclar(evento):
-    if evento.key == "Escape":
-        fechar_menu()
-
-form_busca.addEventListener("submit", create_proxy(ao_enviar_busca))
-form_album.addEventListener("submit", create_proxy(criar_album))
-document.addEventListener("click", create_proxy(ao_clicar))
-document.addEventListener("change", create_proxy(ao_mudar))
-document.addEventListener("keydown", create_proxy(ao_teclar))
-document.addEventListener("play", create_proxy(pausar_outros), True)
-botao_tema.addEventListener("click", create_proxy(alternar_tema))
-
-tema_salvo = carregar("tema", None)
-if tema_salvo:
-    document.documentElement.setAttribute("data-theme", tema_salvo)
-
-mostrar_tela()
+   
