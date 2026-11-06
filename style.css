@@ -450,3 +450,27 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   cursor: not-allowed !important;
   pointer-events: none;
 }
+
+
+/* ---------- Seletor de idioma ----------
+   Botão 🌐 entre a busca e o botão de tema. O pop-up reaproveita o estilo do
+   menu ☰ (.menu-popup / .menu-opcao), mas abre alinhado à direita. */
+.idioma-wrap { position: relative; flex-shrink: 0; }
+.icone.idioma-btn {
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.lang-popup { left: auto; right: 0; width: 220px; }
+.menu-icone.codigo { font-size: 0.85rem; font-weight: 800; letter-spacing: 0.02em; }
+.menu-opcao.ativo { background: var(--accent-soft); }
+.menu-opcao.ativo .menu-icone { background: var(--accent); color: #fff; }
+
+@media (max-width: 720px) {
+  #lang-atual { display: none; }                 /* só o ícone 🌐 */
+  .icone.idioma-btn { width: 40px; padding: 0; justify-content: center; }
+}
