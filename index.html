@@ -115,7 +115,7 @@
 
   <!-- Funções JavaScript para pastas locais e downloads -->
   <script>
-    let localMusicas = [];
+    window.localMusicas = [];
 
     async function selecionarPastaDispositivo() {
       if (!window.showDirectoryPicker) {
@@ -124,7 +124,7 @@
       }
       try {
         const dirHandle = await window.showDirectoryPicker();
-        localMusicas = [];
+        window.localMusicas = [];
         
         for await (const entry of dirHandle.values()) {
           if (entry.kind === 'file') {
@@ -132,7 +132,7 @@
             const ext = file.name.split('.').pop().toLowerCase();
             if (['mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac'].includes(ext)) {
               const audioUrl = URL.createObjectURL(file);
-              localMusicas.push({
+              window.localMusicas.push({
                 id: 'local_' + file.name,
                 nome: file.name.replace(/\.[^/.]+$/, ""),
                 artista: "Pasta Local",
@@ -142,7 +142,7 @@
             }
           }
         }
-        alert(`${localMusicas.length} músicas de áudio encontradas na pasta!`);
+        alert(`${window.localMusicas.length} músicas de áudio encontradas na pasta!`);
         
         if (window.atualizarTelaLocalPy) {
           window.atualizarTelaLocalPy();
