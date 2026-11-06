@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-PT" data-theme="dark">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SoundTrack Finder</title>
 
   <!-- Ícone do separador do navegador (Favicon) -->
-  <link rel="icon" type="image/png" href="favicon.png.png">
+  <link rel="icon" type="image/png" href="favicon.png">
 
   <!-- Fonte Inter (Google Fonts) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,22 +33,22 @@
         <nav id="menu-popup" class="menu-popup" hidden>
           <button class="menu-opcao" data-acao="ir-albuns" type="button">
             <span class="menu-icone">💿</span>
-            <span class="menu-texto"><strong>Álbuns</strong><small>As suas playlists</small></span>
+            <span class="menu-texto"><strong data-i18n="menu_albuns">Álbuns</strong><small data-i18n="menu_albuns_sub">Suas playlists</small></span>
             <span class="menu-qtd" id="menu-qtd-albuns">0</span>
           </button>
           <button class="menu-opcao" data-acao="ir-favoritos" type="button">
             <span class="menu-icone">⭐</span>
-            <span class="menu-texto"><strong>Favoritos</strong><small>Músicas favoritas</small></span>
+            <span class="menu-texto"><strong data-i18n="menu_favoritos">Favoritos</strong><small data-i18n="menu_favoritos_sub">Músicas favoritas</small></span>
             <span class="menu-qtd" id="menu-qtd-favoritos">0</span>
           </button>
           <button class="menu-opcao" data-acao="ir-downloads" type="button">
             <span class="menu-icone">⬇️</span>
-            <span class="menu-texto"><strong>Downloads</strong><small>Músicas descarregadas</small></span>
+            <span class="menu-texto"><strong data-i18n="menu_downloads">Downloads</strong><small data-i18n="menu_downloads_sub">Músicas baixadas</small></span>
             <span class="menu-qtd" id="menu-qtd-downloads">0</span>
           </button>
           <button class="menu-opcao" data-acao="ir-local" type="button">
             <span class="menu-icone">📂</span>
-            <span class="menu-texto"><strong>Dispositivo</strong><small>Músicas locais</small></span>
+            <span class="menu-texto"><strong data-i18n="menu_local">Dispositivo</strong><small data-i18n="menu_local_sub">Músicas locais</small></span>
             <span class="menu-qtd" id="menu-qtd-local">0</span>
           </button>
         </nav>
@@ -60,18 +60,25 @@
       </button>
 
       <form id="search-form">
-        <input id="search-input" type="text" placeholder="Procure um artista ou música…" autocomplete="off">
-        <button id="search-btn" type="submit">Pesquisar</button>
+        <input id="search-input" type="text" placeholder="Busque um artista ou música…" autocomplete="off" data-i18n-placeholder="busca_placeholder">
+        <button id="search-btn" type="submit" data-i18n="btn_pesquisar">Buscar</button>
       </form>
 
-      <button id="theme-btn" class="icone" type="button" title="Alternar tema">🌓</button>
+      <!-- Seletor de Idioma -->
+      <select id="lang-select" class="icone" style="width: auto; padding: 0 8px; font-weight: 600;" title="Mudar Idioma">
+        <option value="pt">PT</option>
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+      </select>
+
+      <button id="theme-btn" class="icone" type="button" title="Trocar tema">🌓</button>
     </header>
 
-    <!-- ================= ECRÃS ================= -->
+    <!-- ================= TELAS ================= -->
     <div class="scroll" id="scroll">
 
       <section id="tela-busca">
-        <p id="status">Digite algo para começar.</p>
+        <p id="status" data-i18n="status_inicio">Digite algo para começar.</p>
         <main id="grid"></main>
       </section>
 
@@ -82,14 +89,14 @@
       <section id="tela-albuns" hidden>
         <div class="tela-topo">
           <div>
-            <h1>Álbuns</h1>
+            <h1 data-i18n="menu_albuns">Álbuns</h1>
             <p id="albuns-sub">0 álbuns</p>
           </div>
         </div>
 
         <form id="album-form" class="album-form">
-          <input id="album-input" type="text" placeholder="Nome do novo álbum…" maxlength="40" autocomplete="off">
-          <button type="submit">＋ Criar álbum</button>
+          <input id="album-input" type="text" placeholder="Nome do novo álbum…" maxlength="40" autocomplete="off" data-i18n-placeholder="album_placeholder">
+          <button type="submit" data-i18n="btn_criar_album">＋ Criar álbum</button>
         </form>
 
         <div id="albuns-grid" class="albuns-grid"></div>
@@ -103,8 +110,8 @@
       <div class="tocando">
         <div class="tocando-capa" id="np-capa">♪</div>
         <div class="tocando-info">
-          <strong id="np-nome">Nada a reproduzir</strong>
-          <span id="np-artista">Escolha uma música para ouvir</span>
+          <strong id="np-nome" data-i18n="player_nada">Nada tocando</strong>
+          <span id="np-artista" data-i18n="player_sub">Escolha uma música para ouvir</span>
         </div>
       </div>
       <audio id="player" controls preload="none"></audio>
@@ -113,13 +120,12 @@
     <div id="toast" class="toast" role="status"></div>
   </div>
 
-  <!-- Funções JavaScript para pastas locais e downloads -->
   <script>
     let localMusicas = [];
 
     async function selecionarPastaDispositivo() {
       if (!window.showDirectoryPicker) {
-        alert("O seu navegador não suporta a abertura de pastas locais.");
+        alert("Seu navegador não suporta a abertura de pastas locais.");
         return;
       }
       try {
@@ -164,7 +170,6 @@
     }
   </script>
 
-  <!-- Script Python (PyScript) -->
   <script type="py" src="./main.py" config="./pyscript.toml"></script>
 </body>
 </html>
